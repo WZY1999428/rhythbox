@@ -63,7 +63,7 @@ internal fun PlayerBottom(
     var showSelectPlaylist by rememberSaveable { mutableStateOf(false) }
 
     Box(
-        modifier = Modifier.fillMaxWidth().height(150.dp).then(modifier)
+        modifier = Modifier.fillMaxWidth().height(170.dp).then(modifier)
     ) {
         Column(
             modifier = Modifier.fillMaxWidth()
@@ -88,7 +88,7 @@ internal fun PlayerBottom(
             }
 
             Row(
-                modifier = Modifier.fillMaxWidth().height(40.dp).padding(horizontal = 8.dp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 10.dp).height(40.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 PlayTimer(currentTime)
@@ -126,8 +126,8 @@ internal fun PlayerBottom(
                     )
                 }
                 Row(
-                    modifier = Modifier.width(160.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.weight(1f),
+                    horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(onClick = { prev() }) {
@@ -139,7 +139,7 @@ internal fun PlayerBottom(
                         )
                     }
                     Box(
-                        modifier = Modifier.size(50.dp).clip(RoundedCornerShape(888.dp))
+                        modifier = Modifier.padding(horizontal = 25.dp).size(50.dp).clip(RoundedCornerShape(888.dp))
                             .background(MaterialTheme.colorScheme.onSurfaceVariant)
                             .clickable { togglePlay() },
                         contentAlignment = Alignment.Center

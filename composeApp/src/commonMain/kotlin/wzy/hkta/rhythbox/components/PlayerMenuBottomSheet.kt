@@ -71,7 +71,6 @@ fun PlayerMenuBottomSheet(
     val columnState = rememberLazyListState()
     val scope = rememberCoroutineScope()
     LaunchedEffect(show) {
-        println(playIndex)
         if (!show) return@LaunchedEffect
         if (playIndex >= 0) columnState.animateScrollToItem(playIndex)
     }

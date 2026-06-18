@@ -62,7 +62,6 @@ import rhythbox.composeapp.generated.resources.Res
 import rhythbox.composeapp.generated.resources.logo
 import rhythbox.composeapp.generated.resources.more
 import rhythbox.composeapp.generated.resources.play3
-import rhythbox.composeapp.generated.resources.sort1
 import wzy.hkta.rhythbox.components.BottomControl
 import wzy.hkta.rhythbox.components.MAlertDialog
 import wzy.hkta.rhythbox.components.NavBar
@@ -136,8 +135,6 @@ class PlaylistScreen(
                             IconButton(onClick = {
                                 if (type == PlaylistType.PLAYLIST) {
                                     showEditSheet = true
-                                } else {
-                                    println(123)
                                 }
                             }) {
                                 if (type == PlaylistType.PLAYLIST) {
@@ -190,7 +187,9 @@ class PlaylistScreen(
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = MaterialTheme.colorScheme.primary,
                                 ),
-                                onClick = { vm.play(0) }
+                                onClick = {
+                                    vm.play(0)
+                                }
                             ) {
                                 Row(
                                     horizontalArrangement = Arrangement.Center,
@@ -354,6 +353,7 @@ class PlaylistViewModel(
     ScreenModel {
     val songDao = Rhythbox.dataBase.getSongDao()
     val playlistDao = Rhythbox.dataBase.getPlaylistDao()
+    val playKey = Rhythbox.player.playKey
     private val _playlistInfo = MutableStateFlow<PlaylistEntity?>(null)
     val playlistInfo = _playlistInfo.asStateFlow()
 
@@ -383,7 +383,7 @@ class PlaylistViewModel(
         PlaylistType.DIR -> songDao.getDir(title)
         PlaylistType.PLAYLIST -> songDao.getPlayListSong(id)
     }.onEach {
-        resetMediaItems()
+        if (playKey.value == key) resetMediaItems()
     }.map { rawList ->
         rawList.map { song ->
             song.copy(

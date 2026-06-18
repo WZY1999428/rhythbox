@@ -223,7 +223,7 @@ fun Setting(modifier: Modifier = Modifier, onClose: () -> Unit) {
                             icon = Res.drawable.email,
                             content = {
                                 SettingRowTitle("反馈与建议") {
-                                    Rhythbox.scanMusic?.openBrowser("https://github.com/WZY1999428/thunder-sdk/issues")
+                                    Rhythbox.scanMusic?.openBrowser("https://github.com/WZY1999428/rhythbox-release/issues")
                                 }
                             },
                         )
@@ -237,7 +237,7 @@ fun Setting(modifier: Modifier = Modifier, onClose: () -> Unit) {
                                         indication = null,
                                         interactionSource = remember { MutableInteractionSource() }
                                     ) {
-                                        Rhythbox.scanMusic?.openBrowser("https://github.com/WZY1999428/thunder-sdk/releases/new")
+                                        Rhythbox.scanMusic?.openBrowser("https://github.com/WZY1999428/rhythbox-release/releases")
                                     }) {
                                     Text("版本号", fontSize = 16.sp, fontWeight = FontWeight.Bold)
                                     Spacer(modifier = Modifier.width(5.dp))

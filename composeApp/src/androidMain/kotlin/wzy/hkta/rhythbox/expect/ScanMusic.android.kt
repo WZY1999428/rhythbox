@@ -119,15 +119,6 @@ actual class ScanMusic(private val context: Context, database: AppDatabase) {
             val songList =
                 (_dir.value[parent.absolutePath]?.songList ?: mutableListOf()).apply {
                     val cover = getSongCover(file.absolutePath)
-                    if (cover != null) {
-                        println("$cover ${title ?: fileName}")
-                    }
-//
-//                    val item = lyrics.find { it.name == file.name }
-//                    if (item != null) {
-//                        songDao.insert()
-//                    }
-
                     add(
                         SongItem(
                             name = title ?: fileName,
@@ -188,6 +179,7 @@ actual class ScanMusic(private val context: Context, database: AppDatabase) {
             } else {
                 null // 歌曲压根没内嵌封面
             }
+
         } catch (e: Exception) {
             e.printStackTrace()
             null // 路径不对或者文件损坏时安全降级

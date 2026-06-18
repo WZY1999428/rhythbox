@@ -58,7 +58,6 @@ class SongMetadataScreen(val id: Long) : Screen {
                 songDao.getById(id)
             }
             if (songInfo != null) {
-                println(songInfo!!.path)
                 songName = songInfo!!.name
                 artistName = songInfo!!.artist ?: ""
                 albumName = songInfo!!.album ?: ""

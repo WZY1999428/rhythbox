@@ -12,9 +12,11 @@ import androidx.media3.common.MediaItem
 import androidx.core.net.toUri
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
+import androidx.media3.common.Player.REPEAT_MODE_OFF
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import com.google.common.util.concurrent.MoreExecutors
+import com.google.protobuf.LazyStringArrayList.emptyList
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -31,6 +33,7 @@ import wzy.hkta.rhythbox.utils.Rhythbox
 import wzy.hkta.rhythbox.utils.SnackbarManager
 import wzy.hkta.rhythbox.utils.StorageManager
 import wzy.hkta.rhythbox.utils.generateMediaId
+import kotlin.collections.emptyList
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.random.Random
 
@@ -40,6 +43,8 @@ actual class RhythboxPlayer(private val context: Context, val database: AppDatab
     private var job: Job? = null
     private var isInitRestorePlaylist = false
     private val _mediaItems = MutableStateFlow<List<SongEntity>>(mutableListOf())
+    private var _mediaItems2 = listOf<MediaItem>()
+
     private val _playMode = MutableStateFlow(PlayMode.LIST_LOOP)
     private val _currentSong = MutableStateFlow<SongEntity?>(null)
     private val _lyricStatus = MutableStateFlow<LyricStatus>(LyricStatus.Init)
@@ -48,7 +53,7 @@ actual class RhythboxPlayer(private val context: Context, val database: AppDatab
     private val _duration = MutableStateFlow<Long>(0)
     private val _progress = MutableStateFlow(0f)
     private val _playIndex = MutableStateFlow(-1)
-    private var _playKey: String? = null
+    private var _playKey = MutableStateFlow<String?>(null)
     private val _playUuid = MutableStateFlow<String?>(null)
 
     actual val isPlaying = _isPlaying.asStateFlow()
@@ -58,6 +63,7 @@ actual class RhythboxPlayer(private val context: Context, val database: AppDatab
     actual val playIndex = _playIndex.asStateFlow()
     actual val progress = _progress.asStateFlow()
     actual val playMode = _playMode.asStateFlow()
+    actual val playKey = _playKey.asStateFlow()
     actual val playUuid = _playUuid.asStateFlow()
 
     actual val currentSong = _currentSong.asStateFlow()
@@ -88,11 +94,29 @@ actual class RhythboxPlayer(private val context: Context, val database: AppDatab
         val controllerFuture = MediaController.Builder(context, sessionToken).buildAsync()
         controllerFuture.addListener({
             exoPlayerSession = controllerFuture.get()
+            exoPlayerSession?.repeatMode = REPEAT_MODE_OFF
             exoPlayerSession?.addListener(object : Player.Listener {
                 override fun onIsPlayingChanged(isPlaying: Boolean) {
                     _isPlaying.value = isPlaying
                 }
 
+                override fun onMediaItemTransition(
+                    mediaItem: MediaItem?,
+                    reason: Int
+                ) {
+                    when (reason) {
+                        Player.MEDIA_ITEM_TRANSITION_REASON_SEEK -> {
+                            mediaItem?.let {
+                                val index = _mediaItems2.indexOf(it)
+                                _playIndex.value = index
+                                _currentSong.value = mediaItems.value[index]
+                                savePlayerInfo()
+                            }
+                        }
+
+                        else -> {}
+                    }
+                }
 
                 override fun onPlaybackStateChanged(playbackState: Int) {
                     if (playbackState == Player.STATE_READY && !isInitRestorePlaylist) {
@@ -102,17 +126,26 @@ actual class RhythboxPlayer(private val context: Context, val database: AppDatab
 
                     if (playbackState == Player.STATE_ENDED) {
                         CoroutineScope(Dispatchers.IO).launch {
-                            Rhythbox.dataBase.getSongDao()
-                                .incrementPlayCount(currentSong.value!!.id)
+                            currentSong.value?.id?.let { songId ->
+                                Rhythbox.dataBase.getSongDao().incrementPlayCount(songId)
+                            }
                         }
                         when (playMode.value) {
                             PlayMode.SINGLE_LOOP -> {
                                 exoPlayerSession?.seekTo(0)
+                                exoPlayerSession?.prepare()
                                 exoPlayerSession?.play()
                             }
 
                             PlayMode.LIST -> {
-                                if (playIndex.value < mediaItems.value.size - 1) next()
+                                // 如果不是最后一首，正常切下一首
+                                if (playIndex.value < mediaItems.value.size - 1) {
+                                    next()
+                                } else {
+                                    // 已经是最后一首了，列表播放结束，停止播放
+                                    pause()
+                                    seekTo(0)
+                                }
                             }
 
                             else -> next()
@@ -125,8 +158,11 @@ actual class RhythboxPlayer(private val context: Context, val database: AppDatab
     }
 
     actual fun resetMediaItems(key: String, items: List<SongEntity>, refresh: Boolean?) {
-        if (_playKey == key && items.size == mediaItems.value.size && refresh != true) return
-        _playKey = key
+        if (_playKey.value == key && items.size == mediaItems.value.size && refresh != true) return
+        _playKey.value = key
+        exoPlayerSession?.clearMediaItems()
+        _mediaItems2 = items.map { buildMediaItems(it) }
+        exoPlayerSession?.addMediaItems(_mediaItems2)
         _mediaItems.value = items
         StorageManager.setItem("mediaItems", items.map { it.id })
         StorageManager.setItem<String>("playKey", key)
@@ -237,22 +273,24 @@ actual class RhythboxPlayer(private val context: Context, val database: AppDatab
         mediaItems.value.getOrNull(mediaItemIndex)?.let {
             _currentSong.value = it
             _playUuid.value = it.uuid
-            val mediaItem =
-                MediaItem.Builder()
-                    .setMediaId(it.path)
-                    .setUri(it.path)
-                    .setMediaMetadata(
-                        MediaMetadata.Builder()
-                            .setArtist(it.artist)
-                            .setTitle(it.name)
-                            .setArtworkUri((it.cover ?: "").toUri())
-                            .build()
-                    )
-                    .build()
-            exoPlayerSession?.setMediaItem(mediaItem)
+            exoPlayerSession?.seekTo(mediaItemIndex, 0)
             exoPlayerSession?.prepare()
             savePlayerInfo()
         }
+    }
+
+    private fun buildMediaItems(it: SongEntity): MediaItem {
+        return MediaItem.Builder()
+            .setMediaId(it.path)
+            .setUri(it.path)
+            .setMediaMetadata(
+                MediaMetadata.Builder()
+                    .setArtist(it.artist)
+                    .setTitle(it.name)
+                    .setArtworkUri((it.cover ?: "").toUri())
+                    .build()
+            )
+            .build()
     }
 
     fun savePlayerInfo() {

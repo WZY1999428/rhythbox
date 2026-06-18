@@ -53,12 +53,10 @@ object NetEaseCloudMusic {
         val result = json.decodeFromString<SearchResult>(text)
         val songs = result.result.songs
         if (songs.isEmpty()) return LyricStatus.NotFound
-        println(songs)
         val id = generateContentWithOpenAi(
             "${song.name} ${if (artist != null) "  歌手：$artist" else ""} 时长：${song.duration}",
             songs
         )
-        println(id)
         if (id <= 0) return LyricStatus.NotFound
         val lyricList = loadLyric(id)
         if (!lyricList.isNullOrEmpty()) {
@@ -95,7 +93,6 @@ object NetEaseCloudMusic {
             ?.trim()
         if (text != null) {
             val res = json.decodeFromString<AIResult>(text)
-            println(res)
             return res.id ?: -1
         }
         return -1

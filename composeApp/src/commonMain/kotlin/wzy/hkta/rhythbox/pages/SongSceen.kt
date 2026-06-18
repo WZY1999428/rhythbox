@@ -215,6 +215,8 @@ class SongScreen(
 private class SongViewModel(val key: String, dir: String?) : ScreenModel {
     var songDao = Rhythbox.dataBase.getSongDao()
     private val player = Rhythbox.player
+    val playKey = player.playKey
+
     val songList = when (key) {
         "songScreen" -> songDao.find()
         "RecentlyAdded" -> songDao.getRecentlyAddedSongs()
@@ -225,7 +227,7 @@ private class SongViewModel(val key: String, dir: String?) : ScreenModel {
     }.map { rawList ->
         rawList.map { song -> song.copy(uuid = generateMediaId(key, song)) }
     }.onEach {
-        resetMediaItems()
+        if (playKey.value == key) resetMediaItems()
     }.stateIn(
         scope = screenModelScope,
         started = SharingStarted.WhileSubscribed(5000),

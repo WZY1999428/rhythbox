@@ -54,7 +54,6 @@ internal fun PlayListCards(
 ) {
     var showAddPlaylist by remember { mutableStateOf(false) }
     val playList by vm.playlist.collectAsState()
-    println(playList)
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.fillMaxWidth(),

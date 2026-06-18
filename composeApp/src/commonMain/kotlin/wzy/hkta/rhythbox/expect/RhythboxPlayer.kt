@@ -21,7 +21,7 @@ expect class RhythboxPlayer {
     val mediaItems: StateFlow<List<SongEntity>>
     val playMode: StateFlow<PlayMode>
     val playIndex: StateFlow<Int>
-    //    val playKey: StateFlow<String?>
+    val playKey: StateFlow<String?>
     val playUuid: StateFlow<String?>
     val progress: StateFlow<Float>
     fun prepare(mediaItemIndex: Int)
