@@ -16,7 +16,6 @@ import androidx.media3.common.Player.REPEAT_MODE_OFF
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import com.google.common.util.concurrent.MoreExecutors
-import com.google.protobuf.LazyStringArrayList.emptyList
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -33,7 +32,6 @@ import wzy.hkta.rhythbox.utils.Rhythbox
 import wzy.hkta.rhythbox.utils.SnackbarManager
 import wzy.hkta.rhythbox.utils.StorageManager
 import wzy.hkta.rhythbox.utils.generateMediaId
-import kotlin.collections.emptyList
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.random.Random
 
@@ -105,7 +103,7 @@ actual class RhythboxPlayer(private val context: Context, val database: AppDatab
                     reason: Int
                 ) {
                     when (reason) {
-                        Player.MEDIA_ITEM_TRANSITION_REASON_SEEK -> {
+                        Player.MEDIA_ITEM_TRANSITION_REASON_SEEK, Player.MEDIA_ITEM_TRANSITION_REASON_AUTO -> {
                             mediaItem?.let {
                                 val index = _mediaItems2.indexOf(it)
                                 _playIndex.value = index
@@ -130,7 +128,12 @@ actual class RhythboxPlayer(private val context: Context, val database: AppDatab
                                 Rhythbox.dataBase.getSongDao().incrementPlayCount(songId)
                             }
                         }
+
+                        println("播放结束了 ${playMode.value}")
+
                         when (playMode.value) {
+
+
                             PlayMode.SINGLE_LOOP -> {
                                 exoPlayerSession?.seekTo(0)
                                 exoPlayerSession?.prepare()
@@ -138,12 +141,15 @@ actual class RhythboxPlayer(private val context: Context, val database: AppDatab
                             }
 
                             PlayMode.LIST -> {
+                                println(playIndex.value)
+                                println(mediaItems.value.size)
                                 // 如果不是最后一首，正常切下一首
                                 if (playIndex.value < mediaItems.value.size - 1) {
                                     next()
                                 } else {
                                     // 已经是最后一首了，列表播放结束，停止播放
                                     pause()
+                                    _currentPosition.value = 0
                                     seekTo(0)
                                 }
                             }
@@ -381,6 +387,7 @@ actual class RhythboxPlayer(private val context: Context, val database: AppDatab
     }
 
     actual fun pause() {
+        exoPlayerSession?.pause()
     }
 
     actual fun release() {

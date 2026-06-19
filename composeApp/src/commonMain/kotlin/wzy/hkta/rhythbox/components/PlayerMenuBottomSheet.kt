@@ -115,10 +115,10 @@ fun PlayerMenuBottomSheet(
                     ) {
                         Text(
                             when (playMode.value) {
-                                PlayMode.LIST_LOOP -> "单曲循环"
-                                PlayMode.SINGLE_LOOP -> "列表播放"
-                                PlayMode.LIST -> "随机播放"
-                                PlayMode.SHUFFLE -> "列表循环"
+                                PlayMode.LIST_LOOP -> "列表循环"
+                                PlayMode.SINGLE_LOOP -> "单曲循环"
+                                PlayMode.LIST -> "列表播放"
+                                PlayMode.SHUFFLE -> "随机播放"
                             },
                             fontSize = 13.sp,
                             color = MaterialTheme.colorScheme.primary
