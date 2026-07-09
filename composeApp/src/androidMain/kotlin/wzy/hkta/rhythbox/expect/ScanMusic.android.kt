@@ -25,6 +25,7 @@ import wzy.hkta.rhythbox.database.DirEntity
 import wzy.hkta.rhythbox.database.LyricEntity
 import wzy.hkta.rhythbox.database.SingerEntity
 import wzy.hkta.rhythbox.database.SongEntity
+import wzy.hkta.rhythbox.utils.Rhythbox
 import wzy.hkta.rhythbox.utils.md5
 import java.io.File
 import java.io.FileOutputStream

@@ -1,5 +1,6 @@
 package wzy.hkta.rhythbox.database
 
+import androidx.room.AutoMigration
 import androidx.room.ConstructedBy
 import androidx.room.Database
 import androidx.room.RoomDatabase
@@ -7,10 +8,15 @@ import androidx.room.Transaction
 import wzy.hkta.rhythbox.expect.AppDatabaseConstructor
 
 @Database(
-    entities = [SingerEntity::class, SongEntity::class, AlbumEntity::class, DirEntity::class,
+    entities = [SingerEntity::class, SongEntity::class, AlbumEntity::class, DirEntity::class, PlaylistSortEntity::class,
         CollectEntity::class, LyricEntity::class, PlaylistEntity::class, PlaylistSongEntity::class],
-    version = 3
+    version = 5,
+    autoMigrations = [
+        AutoMigration(from = 4, to = 5)
+    ]
 )
+
+
 @ConstructedBy(AppDatabaseConstructor::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun getSingerDao(): SingerDao
@@ -19,7 +25,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun getDirDao(): DirDao
     abstract fun getCollectDao(): CollectDao
     abstract fun getPlaylistDao(): PlaylistDao
-
+    abstract fun getPlayListSortDao(): PlaylistSortDao
 
     @Transaction
     suspend fun deleteSongAndCleanUpTotally(songId: Long) {
@@ -35,6 +41,20 @@ abstract class AppDatabase : RoomDatabase() {
             if (singer.count == 0) getSingerDao().delete(singer.id)
             val dir = songDao.getDirByPath(song.path)
             if (dir.count == 0) getDirDao().delete(dir.id)
+        }
+    }
+
+    fun getPlayListSort(key: String): String {
+        val dao = getPlayListSortDao()
+        val savedType = dao.get(key)?.sortType
+        return when (savedType) {
+            SortTypes.BY_NAME -> "name ASC"
+            SortTypes.BY_NAME_DESC -> "name DESC"
+            SortTypes.BY_TIME -> "createTime ASC"
+            SortTypes.BY_TIME_DESC -> "createTime DESC"
+            SortTypes.BY_ARTIST -> "artist ASC"
+            SortTypes.BY_ARTIST_DESC -> "artist DESC"
+            else -> "name ASC"
         }
     }
 

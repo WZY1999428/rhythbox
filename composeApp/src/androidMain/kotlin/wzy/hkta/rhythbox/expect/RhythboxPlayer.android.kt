@@ -8,11 +8,13 @@ import android.os.Build
 import android.provider.Settings
 import android.widget.Toast
 import androidx.annotation.RequiresApi
-import androidx.media3.common.MediaItem
 import androidx.core.net.toUri
+import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
+import androidx.media3.common.Player.REPEAT_MODE_ALL
 import androidx.media3.common.Player.REPEAT_MODE_OFF
+import androidx.media3.common.Player.REPEAT_MODE_ONE
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import com.google.common.util.concurrent.MoreExecutors
@@ -26,6 +28,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import wzy.hkta.rhythbox.database.AppDatabase
 import wzy.hkta.rhythbox.database.SongEntity
+import wzy.hkta.rhythbox.expect.PlayMode
 import wzy.hkta.rhythbox.services.PlaybackService
 import wzy.hkta.rhythbox.utils.NetEaseCloudMusic
 import wzy.hkta.rhythbox.utils.Rhythbox
@@ -92,7 +95,6 @@ actual class RhythboxPlayer(private val context: Context, val database: AppDatab
         val controllerFuture = MediaController.Builder(context, sessionToken).buildAsync()
         controllerFuture.addListener({
             exoPlayerSession = controllerFuture.get()
-            exoPlayerSession?.repeatMode = REPEAT_MODE_OFF
             exoPlayerSession?.addListener(object : Player.Listener {
                 override fun onIsPlayingChanged(isPlaying: Boolean) {
                     _isPlaying.value = isPlaying
@@ -107,7 +109,10 @@ actual class RhythboxPlayer(private val context: Context, val database: AppDatab
                             mediaItem?.let {
                                 val index = _mediaItems2.indexOf(it)
                                 _playIndex.value = index
-                                _currentSong.value = mediaItems.value[index]
+                                mediaItems.value.getOrNull(index)?.let { song ->
+                                    _currentSong.value = song
+                                    _playUuid.value = song.uuid
+                                }
                                 savePlayerInfo()
                             }
                         }
@@ -121,42 +126,6 @@ actual class RhythboxPlayer(private val context: Context, val database: AppDatab
                         seekTo(currentPosition.value)
                         isInitRestorePlaylist = true
                     }
-
-                    if (playbackState == Player.STATE_ENDED) {
-                        CoroutineScope(Dispatchers.IO).launch {
-                            currentSong.value?.id?.let { songId ->
-                                Rhythbox.dataBase.getSongDao().incrementPlayCount(songId)
-                            }
-                        }
-
-                        println("播放结束了 ${playMode.value}")
-
-                        when (playMode.value) {
-
-
-                            PlayMode.SINGLE_LOOP -> {
-                                exoPlayerSession?.seekTo(0)
-                                exoPlayerSession?.prepare()
-                                exoPlayerSession?.play()
-                            }
-
-                            PlayMode.LIST -> {
-                                println(playIndex.value)
-                                println(mediaItems.value.size)
-                                // 如果不是最后一首，正常切下一首
-                                if (playIndex.value < mediaItems.value.size - 1) {
-                                    next()
-                                } else {
-                                    // 已经是最后一首了，列表播放结束，停止播放
-                                    pause()
-                                    _currentPosition.value = 0
-                                    seekTo(0)
-                                }
-                            }
-
-                            else -> next()
-                        }
-                    }
                 }
             })
             restorePlaylist()
@@ -168,7 +137,7 @@ actual class RhythboxPlayer(private val context: Context, val database: AppDatab
         _playKey.value = key
         exoPlayerSession?.clearMediaItems()
         _mediaItems2 = items.map { buildMediaItems(it) }
-        exoPlayerSession?.addMediaItems(_mediaItems2)
+        exoPlayerSession?.setMediaItems(_mediaItems2, true)
         _mediaItems.value = items
         StorageManager.setItem("mediaItems", items.map { it.id })
         StorageManager.setItem<String>("playKey", key)
@@ -205,6 +174,7 @@ actual class RhythboxPlayer(private val context: Context, val database: AppDatab
                         _playMode.value = playerInfo.playMode
                         prepare(_playIndex.value)
                         _currentPosition.value = currentPosition
+                        setPlayerRepeatMode()
                         getSongLyric()
                     }
                 }
@@ -221,9 +191,11 @@ actual class RhythboxPlayer(private val context: Context, val database: AppDatab
     }
 
     actual fun delSong(songEntity: SongEntity) {
+        exoPlayerSession?.removeMediaItem(_mediaItems.value.indexOfLast { it.id == songEntity.id })
         val isCurrent = currentSong.value?.id == songEntity.id
         val newList = _mediaItems.value.filter { it.id != songEntity.id }
         _mediaItems.value = newList
+
         StorageManager.setItem("mediaItems", mediaItems.value.map { it.id })
         if (isCurrent && isPlaying.value) {
             next()
@@ -249,25 +221,55 @@ actual class RhythboxPlayer(private val context: Context, val database: AppDatab
     }
 
 
+    private fun setPlayerRepeatMode() {
+        val player = exoPlayerSession ?: return
+        player.shuffleModeEnabled = false
+        when (playMode.value) {
+            PlayMode.LIST_LOOP -> {
+                player.repeatMode = REPEAT_MODE_ALL
+            }
+
+            PlayMode.SINGLE_LOOP -> {
+                player.repeatMode = REPEAT_MODE_ONE
+            }
+
+            PlayMode.LIST -> {
+                player.repeatMode = REPEAT_MODE_OFF
+            }
+
+            PlayMode.SHUFFLE -> {
+                player.shuffleModeEnabled = true
+                player.repeatMode = REPEAT_MODE_ALL
+            }
+        }
+    }
+
     actual fun onChangePlayMode() {
+        val player = exoPlayerSession ?: return
+        player.shuffleModeEnabled = false
         _playMode.value = when (playMode.value) {
             PlayMode.LIST_LOOP -> {
                 SnackbarManager.show("单曲循环")
+                player.repeatMode = REPEAT_MODE_ONE
                 PlayMode.SINGLE_LOOP
             }
 
             PlayMode.SINGLE_LOOP -> {
                 SnackbarManager.show("列表播放")
+                player.repeatMode = REPEAT_MODE_OFF
                 PlayMode.LIST
             }
 
             PlayMode.LIST -> {
                 SnackbarManager.show("随机播放")
+                player.shuffleModeEnabled = true
+                player.repeatMode = REPEAT_MODE_ALL
                 PlayMode.SHUFFLE
             }
 
             PlayMode.SHUFFLE -> {
                 SnackbarManager.show("列表循环")
+                player.repeatMode = REPEAT_MODE_ALL
                 PlayMode.LIST_LOOP
             }
         }

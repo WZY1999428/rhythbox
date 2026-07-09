@@ -15,6 +15,7 @@ import androidx.core.content.IntentCompat
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.ForwardingPlayer
+import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaSession
@@ -51,11 +52,11 @@ class PlaybackService : MediaSessionService() {
             .build()
 
 
-          /*
-          * 在 Android 系统中，当耳机（不管是 3.5mm 有线耳机还是蓝牙耳机）被拔出或断开连接时，
-          * 系统音频流会突然从“耳机”切换回“手机扬声器”。
-          * 为了防止在公共场合发生耳机一拔、扬声器突然大声外放音乐的尴尬社交名场面，Android 官方提供了这个机制。
-          * */
+        /*
+        * 在 Android 系统中，当耳机（不管是 3.5mm 有线耳机还是蓝牙耳机）被拔出或断开连接时，
+        * 系统音频流会突然从“耳机”切换回“手机扬声器”。
+        * 为了防止在公共场合发生耳机一拔、扬声器突然大声外放音乐的尴尬社交名场面，Android 官方提供了这个机制。
+        * */
         noisyReceiver = object : BroadcastReceiver() {
             @RequiresApi(Build.VERSION_CODES.O)
             override fun onReceive(context: Context?, intent: Intent?) {
@@ -72,12 +73,13 @@ class PlaybackService : MediaSessionService() {
             IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY)
         )
     }
-   /*
-       在 Media3 中，点击通知栏（或者点击系统播放控制中心）需要能够唤醒并打开 App 的界面。
-       这个功能是通过向 MediaSession 提供一个 PendingIntent 来实现的。
-       创建一个指向你 App 主 Activity（比如 MainActivity）的 PendingIntent，
-       然后通过 MediaSession.Builder 的 setSessionActivity() 方法传给它。
-   * */
+
+    /*
+        在 Media3 中，点击通知栏（或者点击系统播放控制中心）需要能够唤醒并打开 App 的界面。
+        这个功能是通过向 MediaSession 提供一个 PendingIntent 来实现的。
+        创建一个指向你 App 主 Activity（比如 MainActivity）的 PendingIntent，
+        然后通过 MediaSession.Builder 的 setSessionActivity() 方法传给它。
+    * */
     private fun buildPendingIntent(): PendingIntent {
         // 🛠️ 1. 创建点击通知栏时要打开的 Intent
         val intent = Intent(this, MainActivity::class.java).apply {
@@ -102,8 +104,11 @@ class PlaybackService : MediaSessionService() {
             setAudioAttributes(audioAttributes, true)
         }.build()
 
+        player.repeatMode = Player.REPEAT_MODE_ONE
+
         //🛠️ 用这个包装层，把系统默认按钮的点击事件，强行导流到你自己的播放器
         val forwardingPlayer = object : ForwardingPlayer(player) {
+
             // 拦截通知栏“上一首”标准动作
             override fun seekToPrevious() {
                 // 放弃 ExoPlayer 内部的 3秒判断，直接执行你的切歌
@@ -131,7 +136,7 @@ class PlaybackService : MediaSessionService() {
 
 
     @UnstableApi
-    private inner class CustomMediaSessionCallback : MediaSession.Callback {
+    private class CustomMediaSessionCallback : MediaSession.Callback {
 
 
         // 2. 在这里接收通知栏的点击事件，然后调用你自己的列表管理器

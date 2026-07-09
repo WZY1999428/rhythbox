@@ -217,13 +217,15 @@ private class SongViewModel(val key: String, dir: String?) : ScreenModel {
     private val player = Rhythbox.player
     val playKey = player.playKey
 
+    val sort = Rhythbox.dataBase.getPlayListSort(key)
+
     val songList = when (key) {
-        "songScreen" -> songDao.find()
-        "RecentlyAdded" -> songDao.getRecentlyAddedSongs()
+        "songScreen" -> songDao.find(sort)
+        "RecentlyAdded" -> songDao.getRecentlyAddedSongs(sort)
         "MusicRankings" -> songDao.getPlayCountList()
-        "FolderScreen$dir" -> songDao.getDir(dir!!)
-        "MyCollection" -> songDao.findCollect()
-        else -> songDao.find()
+        "FolderScreen$dir" -> songDao.getDir(dir!!, sort)
+        "MyCollection" -> songDao.findCollect(sort)
+        else -> songDao.find(sort)
     }.map { rawList ->
         rawList.map { song -> song.copy(uuid = generateMediaId(key, song)) }
     }.onEach {

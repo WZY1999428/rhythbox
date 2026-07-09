@@ -114,3 +114,23 @@ data class SongInfo(
     val count: Int = 0,
     val cover: String? = null
 )
+
+
+object SortTypes {
+    const val BY_NAME = "BY_NAME_AES"
+    const val BY_NAME_DESC = "BY_NAME_DESC"
+    const val BY_TIME = "BY_TIME_AES"
+    const val BY_TIME_DESC = "BY_TIME_DESC"
+    const val BY_ARTIST = "BY_ARTIST"
+    const val BY_ARTIST_DESC = "BY_ARTIST_DESC"
+}
+
+@Entity(
+    indices = [Index(value = ["sortKey"], unique = true)]
+)
+data class PlaylistSortEntity(
+    @PrimaryKey(autoGenerate = true)
+    val id: Long = 0,
+    val sortKey: String,
+    val sortType: String= SortTypes.BY_NAME
+)

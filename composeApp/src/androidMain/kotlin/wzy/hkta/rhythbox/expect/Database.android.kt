@@ -8,8 +8,10 @@ import wzy.hkta.rhythbox.database.AppDatabase
 fun getDatabaseBuilder(context: Context): RoomDatabase.Builder<AppDatabase> {
     val appContext = context.applicationContext
     val dbFile = appContext.getDatabasePath("rhythbox.db")
+
     return Room.databaseBuilder<AppDatabase>(
         context = appContext,
         name = dbFile.absolutePath
-    ).fallbackToDestructiveMigration(false)
+    )
+    // 💡 提示：有了上面的 AutoMigration，这里不需要再配置任何破坏性清空，数据会稳稳留住！
 }
