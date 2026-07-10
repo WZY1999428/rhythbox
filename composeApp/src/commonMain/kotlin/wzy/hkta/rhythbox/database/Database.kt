@@ -44,19 +44,6 @@ abstract class AppDatabase : RoomDatabase() {
         }
     }
 
-    fun getPlayListSort(key: String): String {
-        val dao = getPlayListSortDao()
-        val savedType = dao.get(key)?.sortType
-        return when (savedType) {
-            SortTypes.BY_NAME -> "name ASC"
-            SortTypes.BY_NAME_DESC -> "name DESC"
-            SortTypes.BY_TIME -> "createTime ASC"
-            SortTypes.BY_TIME_DESC -> "createTime DESC"
-            SortTypes.BY_ARTIST -> "artist ASC"
-            SortTypes.BY_ARTIST_DESC -> "artist DESC"
-            else -> "name ASC"
-        }
-    }
 
     @Transaction
     suspend fun updateSongAndAlbumAndSinger(song: SongEntity, oldItem: SongEntity) {

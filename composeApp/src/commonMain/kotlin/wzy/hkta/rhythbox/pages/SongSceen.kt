@@ -26,8 +26,10 @@ import cafe.adriel.voyager.core.model.screenModelScope
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
@@ -42,10 +44,12 @@ import wzy.hkta.rhythbox.components.NavBar
 import wzy.hkta.rhythbox.components.RhythboxSongEmptyState
 import wzy.hkta.rhythbox.components.SongBottomSheet
 import wzy.hkta.rhythbox.components.SongItem
+import wzy.hkta.rhythbox.components.SortSongBottomSheet
 import wzy.hkta.rhythbox.cssToColor
 import wzy.hkta.rhythbox.database.SongEntity
 import wzy.hkta.rhythbox.utils.Rhythbox
 import wzy.hkta.rhythbox.utils.generateMediaId
+import wzy.hkta.rhythbox.utils.getSortType
 import wzy.hkta.rhythbox.utils.isCurrentPlaying
 import kotlin.collections.emptyList
 
@@ -64,6 +68,7 @@ class SongScreen(
         val playUuid = player.playUuid.collectAsState()
         val isPlaying = player.isPlaying.collectAsState()
         var showSongBottomSheet by remember { mutableStateOf(false) }
+        var showSortSongBottomSheet by remember { mutableStateOf(false) }
         var selectSong by remember { mutableStateOf<SongEntity?>(null) }
 
         Column(modifier = Modifier.fillMaxSize()) {
@@ -123,16 +128,16 @@ class SongScreen(
                             color = "#999999".cssToColor()
                         )
                     }
-//                    IconButton(onClick = {
-//
-//                    }) {
-//                        Icon(
-//                            painterResource(Res.drawable.sort1),
-//                            modifier = Modifier.size(16.dp),
-//                            contentDescription = null,
-//                            tint = Color.Unspecified
-//                        )
-//                    }
+                    IconButton(onClick = {
+                        showSortSongBottomSheet=true
+                    }) {
+                        Icon(
+                            painterResource(Res.drawable.sort1),
+                            modifier = Modifier.size(16.dp),
+                            contentDescription = null,
+                            tint = Color.Unspecified
+                        )
+                    }
                 }
 
                 if (songList.value.isEmpty()) {
@@ -209,23 +214,38 @@ class SongScreen(
             )
         }
 
+        SortSongBottomSheet(
+            show = showSortSongBottomSheet,
+            currentSort = "",
+            onSortSelected = {
+
+            },
+            onDismissRequest = {
+                showSortSongBottomSheet = false
+            }
+        )
+
     }
 }
 
 private class SongViewModel(val key: String, dir: String?) : ScreenModel {
     var songDao = Rhythbox.dataBase.getSongDao()
+    val playListSortDao = Rhythbox.dataBase.getPlayListSortDao()
+
     private val player = Rhythbox.player
     val playKey = player.playKey
 
-    val sort = Rhythbox.dataBase.getPlayListSort(key)
-
-    val songList = when (key) {
-        "songScreen" -> songDao.find(sort)
-        "RecentlyAdded" -> songDao.getRecentlyAddedSongs(sort)
-        "MusicRankings" -> songDao.getPlayCountList()
-        "FolderScreen$dir" -> songDao.getDir(dir!!, sort)
-        "MyCollection" -> songDao.findCollect(sort)
-        else -> songDao.find(sort)
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val songList = playListSortDao.get(key).flatMapLatest {
+        val sort = getSortType(it?.sortType)
+        when (key) {
+            "songScreen" -> songDao.find(sort)
+            "RecentlyAdded" -> songDao.getRecentlyAddedSongs(sort)
+            "MusicRankings" -> songDao.getPlayCountList()
+            "FolderScreen$dir" -> songDao.getDir(dir!!, sort)
+            "MyCollection" -> songDao.findCollect(sort)
+            else -> songDao.find(sort)
+        }
     }.map { rawList ->
         rawList.map { song -> song.copy(uuid = generateMediaId(key, song)) }
     }.onEach {

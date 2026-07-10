@@ -49,10 +49,12 @@ import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.navigator.currentOrThrow
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
@@ -62,6 +64,7 @@ import rhythbox.composeapp.generated.resources.Res
 import rhythbox.composeapp.generated.resources.logo
 import rhythbox.composeapp.generated.resources.more
 import rhythbox.composeapp.generated.resources.play3
+import rhythbox.composeapp.generated.resources.sort1
 import wzy.hkta.rhythbox.components.BottomControl
 import wzy.hkta.rhythbox.components.MAlertDialog
 import wzy.hkta.rhythbox.components.NavBar
@@ -69,6 +72,7 @@ import wzy.hkta.rhythbox.components.PlaylistInfoBottomSheet
 import wzy.hkta.rhythbox.components.RhythboxSongEmptyState
 import wzy.hkta.rhythbox.components.SongBottomSheet
 import wzy.hkta.rhythbox.components.SongItem
+import wzy.hkta.rhythbox.components.SortSongBottomSheet
 import wzy.hkta.rhythbox.cssToColor
 import wzy.hkta.rhythbox.database.PlaylistEntity
 import wzy.hkta.rhythbox.database.SongEntity
@@ -77,6 +81,7 @@ import wzy.hkta.rhythbox.utils.Rhythbox.player
 import wzy.hkta.rhythbox.utils.SnackbarManager
 import wzy.hkta.rhythbox.utils.formatDate
 import wzy.hkta.rhythbox.utils.generateMediaId
+import wzy.hkta.rhythbox.utils.getSortType
 import wzy.hkta.rhythbox.utils.isCurrentPlaying
 
 enum class PlaylistType {
@@ -105,6 +110,7 @@ class PlaylistScreen(
         var showEditSheet by remember { mutableStateOf(false) }
         var showAlertDialog by remember { mutableStateOf(false) }
         var showSongBottomSheet by remember { mutableStateOf(false) }
+        var showSortSongBottomSheet by remember { mutableStateOf(false) }
         var selectSong by remember { mutableStateOf<SongEntity?>(null) }
         val info = vm.info.collectAsState()
         val songList = vm.songList.collectAsState()
@@ -204,14 +210,14 @@ class PlaylistScreen(
                                 }
                             }
                         }
-//                        IconButton(onClick = {}) {
-//                            Icon(
-//                                painterResource(Res.drawable.sort1),
-//                                modifier = Modifier.size(16.dp),
-//                                contentDescription = null,
-//                                tint = "#E6A699".cssToColor(),
-//                            )
-//                        }
+                        IconButton(onClick = { showSortSongBottomSheet = true }) {
+                            Icon(
+                                painterResource(Res.drawable.sort1),
+                                modifier = Modifier.size(16.dp),
+                                contentDescription = null,
+                                tint = "#E6A699".cssToColor(),
+                            )
+                        }
                     }
 
                     if (songList.value.isEmpty()) {
@@ -305,6 +311,17 @@ class PlaylistScreen(
                 onDeleteClick = { showAlertDialog = true }
             )
         }
+
+        SortSongBottomSheet(
+            show = showSortSongBottomSheet,
+            currentSort = "",
+            onSortSelected = {
+
+            },
+            onDismissRequest = {
+                showSortSongBottomSheet = false
+            }
+        )
     }
 }
 
@@ -353,6 +370,7 @@ class PlaylistViewModel(
     ScreenModel {
     val songDao = Rhythbox.dataBase.getSongDao()
     val playlistDao = Rhythbox.dataBase.getPlaylistDao()
+    val playListSortDao = Rhythbox.dataBase.getPlayListSortDao()
     val playKey = Rhythbox.player.playKey
     private val _playlistInfo = MutableStateFlow<PlaylistEntity?>(null)
     val playlistInfo = _playlistInfo.asStateFlow()
@@ -365,6 +383,27 @@ class PlaylistViewModel(
         }
     }
 
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val songList = playListSortDao.get(key).flatMapLatest {
+        val sort = getSortType(it?.sortType)
+        when (type) {
+            PlaylistType.ALBUM -> songDao.getAlbum(title, sort)
+            PlaylistType.ARTIST -> songDao.getArtist(title, sort)
+            PlaylistType.DIR -> songDao.getDir(title, sort)
+            PlaylistType.PLAYLIST -> songDao.getPlayListSong(id, sort)
+        }
+    }.onEach {
+        if (playKey.value == key) resetMediaItems()
+    }.map { rawList ->
+        rawList.map { song -> song.copy(uuid = generateMediaId(key, song)) }
+    }.stateIn(
+        scope = screenModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = emptyList()
+    )
+
+
     private val player = Rhythbox.player
     val info = when (type) {
         PlaylistType.ALBUM -> songDao.getByAlbumId(id)
@@ -375,25 +414,6 @@ class PlaylistViewModel(
         scope = screenModelScope,
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = null
-    )
-
-    val songList = when (type) {
-        PlaylistType.ALBUM -> songDao.getAlbum(title)
-        PlaylistType.ARTIST -> songDao.getArtist(title)
-        PlaylistType.DIR -> songDao.getDir(title)
-        PlaylistType.PLAYLIST -> songDao.getPlayListSong(id)
-    }.onEach {
-        if (playKey.value == key) resetMediaItems()
-    }.map { rawList ->
-        rawList.map { song ->
-            song.copy(
-                uuid = generateMediaId(key, song)
-            )
-        }
-    }.stateIn(
-        scope = screenModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
-        initialValue = emptyList()
     )
 
     fun play(index: Int = 0) {

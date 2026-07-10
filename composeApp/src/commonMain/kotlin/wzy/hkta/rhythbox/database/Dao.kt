@@ -63,14 +63,14 @@ interface SongDao {
     @Query("SELECT * FROM SongEntity WHERE id IN (:ids)")
     fun getByIds(ids: List<Long>): List<SongEntity>
 
-    @Query("SELECT *,EXISTS( SELECT 1 FROM CollectEntity c WHERE c.songId = s.id ) AS isLike FROM SongEntity s WHERE album=:album")
-    fun getAlbum(album: String): Flow<List<SongEntity>>
+    @Query("SELECT *,EXISTS( SELECT 1 FROM CollectEntity c WHERE c.songId = s.id ) AS isLike FROM SongEntity s WHERE album=:album ORDER BY :sort")
+    fun getAlbum(album: String, sort: String = "name AES"): Flow<List<SongEntity>>
 
-    @Query("SELECT *, EXISTS( SELECT 1 FROM CollectEntity c WHERE c.songId = s.id ) AS isLike FROM SongEntity s WHERE artist=:artist")
-    fun getArtist(artist: String): Flow<List<SongEntity>>
+    @Query("SELECT *, EXISTS( SELECT 1 FROM CollectEntity c WHERE c.songId = s.id ) AS isLike FROM SongEntity s WHERE artist=:artist ORDER BY :sort")
+    fun getArtist(artist: String, sort: String = "name AES"): Flow<List<SongEntity>>
 
     @Query("SELECT *,EXISTS( SELECT 1 FROM CollectEntity c WHERE c.songId = s.id ) AS isLike FROM SongEntity s WHERE dirId=:dir ORDER BY :sort")
-    fun getDir(dir: String, sort: String="name AES"): Flow<List<SongEntity>>
+    fun getDir(dir: String, sort: String = "name AES"): Flow<List<SongEntity>>
 
     @Query("SELECT COUNT(*) FROM (SELECT * FROM SongEntity WHERE dirId=:dir)")
     fun getDirCount(dir: String): Flow<Int>
@@ -144,9 +144,10 @@ interface SongDao {
     INNER JOIN SongEntity s
         ON s.id = ps.songId
     WHERE ps.playlistId = :id
+    ORDER BY :sort
 """
     )
-    fun getPlayListSong(id: Long): Flow<List<SongEntity>>
+    fun getPlayListSong(id: Long, sort: String = "name ASC"): Flow<List<SongEntity>>
 
     @Query(
         """
@@ -345,7 +346,7 @@ interface PlaylistDao {
 @Dao
 interface PlaylistSortDao {
     @Query("SELECT * FROM PlaylistSortEntity WHERE sortKey = :key ")
-    fun get(key: String): PlaylistSortEntity?
+    fun get(key: String): Flow<PlaylistSortEntity?>
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insert(item: PlaylistSortEntity)
