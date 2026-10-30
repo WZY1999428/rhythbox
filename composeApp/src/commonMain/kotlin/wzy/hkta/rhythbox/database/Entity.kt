@@ -3,6 +3,7 @@ package wzy.hkta.rhythbox.database
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import kotlinx.serialization.Serializable
 
 @Entity(
     indices = [
@@ -133,4 +134,25 @@ data class PlaylistSortEntity(
     val id: Long = 0,
     val sortKey: String,
     val sortType: String= SortTypes.BY_NAME
+)
+
+
+
+@Entity(
+    indices = [Index(value = ["songId"], unique = true)]
+)
+data class PlayHistoryEntity(
+    @PrimaryKey(autoGenerate = true)
+    val id: Long = 0,
+    val songId: Long,
+    val createTime: Long = System.currentTimeMillis(),
+)
+
+@Entity(
+    indices = [Index(value = ["url", "filePath"], unique = true)]
+)
+data class SongCache(
+    @PrimaryKey
+    val url: String,
+    val filePath: String
 )

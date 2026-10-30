@@ -1,6 +1,5 @@
 package wzy.hkta.rhythbox.utils
 
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -11,6 +10,8 @@ import java.security.MessageDigest
 import kotlinx.datetime.number
 import kotlinx.datetime.toLocalDateTime
 import wzy.hkta.rhythbox.database.SortTypes
+import wzy.hkta.rhythbox.utils.fatchMusic.Song
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Instant
 
 fun formatDate(time: Long): String {
@@ -51,7 +52,10 @@ fun generateMediaId(key: String, song: SongEntity): String {
     return "${key}_${song.name}_${song.size}_${song.path}"
 }
 
-@OptIn(ExperimentalFoundationApi::class)
+fun generateNetMediaId(key: String, song: Song): String {
+    return "${key}_${song.title}_${song.duration}_${song.id}"
+}
+
 fun Modifier.marqueeText(): Modifier {
     return this.basicMarquee(
         iterations = Int.MAX_VALUE, // ♾️ 无线循环滚动
@@ -85,9 +89,28 @@ suspend fun <T> retry(
             return block()
         } catch (e: Exception) {
             lastException = e
-            delay(1000L * (it + 1))
+            delay((1000L * (it + 1)).milliseconds)
         }
     }
 
     throw lastException!!
+}
+
+
+fun formatPlayTotal(total: Long): String {
+    val (value, unit) = when {
+        total >= 10_000 -> total / 1000L to "w"
+        total >= 1_000 -> total to "k"
+        else -> return total.toString()
+    }
+
+    val divisor = if (unit == "w") 10L else 1000L
+    val integer = value / divisor
+    val decimal = (value % divisor) * 10 / divisor
+
+    return if (decimal == 0L) {
+        "$integer$unit"
+    } else {
+        "$integer.$decimal$unit"
+    }
 }

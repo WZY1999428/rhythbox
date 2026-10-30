@@ -3,6 +3,11 @@ package wzy.hkta.rhythbox.expect
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.serialization.Serializable
 import wzy.hkta.rhythbox.database.SongEntity
+import wzy.hkta.rhythbox.utils.SongListType
+import wzy.hkta.rhythbox.utils.SongType
+import wzy.hkta.rhythbox.utils.fatchMusic.ListData
+import wzy.hkta.rhythbox.utils.fatchMusic.LyricData
+import wzy.hkta.rhythbox.utils.fatchMusic.Song
 
 enum class PlayMode {
     LIST,       // 顺序播放
@@ -14,11 +19,13 @@ enum class PlayMode {
 // commonMain
 expect class RhythboxPlayer {
     val isPlaying: StateFlow<Boolean>
-    val currentSong: StateFlow<SongEntity?>
+    val currentSong: StateFlow<SongType?>
     val lyricStatus: StateFlow<LyricStatus>
+    val lyricList: StateFlow<List<LyricData>>
     val currentPosition: StateFlow<Long>
     val duration: StateFlow<Long>
-    val mediaItems: StateFlow<List<SongEntity>>
+    val playerLoading: StateFlow<Boolean>
+    val mediaItems: StateFlow<SongListType>
     val playMode: StateFlow<PlayMode>
     val playIndex: StateFlow<Int>
     val playKey: StateFlow<String?>
@@ -27,8 +34,8 @@ expect class RhythboxPlayer {
     fun prepare(mediaItemIndex: Int)
     fun play()
     fun togglePlay()
-    fun addSong(songItem: SongEntity)
-    fun delSong(songEntity: SongEntity)
+    fun addSong(song: SongType)
+    fun delSong(song: SongType)
 
     fun next()
     fun prev()
@@ -37,8 +44,8 @@ expect class RhythboxPlayer {
     fun release()
     fun restorePlaylist()
     fun getSongLyric()
-    fun resetMediaItems(key: String, items: List<SongEntity>, refresh: Boolean?)
-    fun updateMediaItem(item: SongEntity)
+    fun resetMediaItems(key: String, songItems: SongListType, refresh: Boolean?, startIndex: Int? = null)
+    fun updateMediaItem(song: SongType)
     fun setRhythboxRingtone()
     fun onChangePlayMode()
 }

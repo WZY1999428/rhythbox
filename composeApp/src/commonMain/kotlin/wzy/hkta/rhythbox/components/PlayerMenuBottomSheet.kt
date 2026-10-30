@@ -49,7 +49,10 @@ import rhythbox.composeapp.generated.resources.like_pink
 import wzy.hkta.rhythbox.expect.PlayMode
 import wzy.hkta.rhythbox.database.CollectEntity
 import wzy.hkta.rhythbox.database.SongEntity
-import wzy.hkta.rhythbox.pages.SongScreen
+import wzy.hkta.rhythbox.screens.song.SongScreen
+import wzy.hkta.rhythbox.utils.SongListType
+import wzy.hkta.rhythbox.utils.SongType
+import wzy.hkta.rhythbox.utils.getSongInfo
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -61,9 +64,9 @@ fun PlayerMenuBottomSheet(
     val player = Rhythbox.player
     val navigator = LocalNavigator.currentOrThrow
     var showAlert by remember { mutableStateOf(false) }
-    val songList by player.mediaItems.collectAsState()
+    val mediaItems by player.mediaItems.collectAsState()
     val collectDao = Rhythbox.dataBase.getCollectDao()
-    var currentSong by remember { mutableStateOf<SongEntity?>(null) }
+    var currentSong by remember { mutableStateOf<SongType?>(null) }
     val playIndex by player.playIndex.collectAsState()
     val playUuid = player.playUuid.collectAsState()
     val isPlaying = player.isPlaying.collectAsState()
@@ -102,7 +105,7 @@ fun PlayerMenuBottomSheet(
                             modifier = Modifier.padding(end = 5.dp)
                         )
                         Text(
-                            "(${songList.size}首音乐)",
+                            "(${songLength(mediaItems)}首音乐)",
                             fontSize = 14.sp,
                             color = "#716D6D".cssToColor(),
                         )
@@ -126,7 +129,7 @@ fun PlayerMenuBottomSheet(
                     }
                 }
 
-                if (songList.isEmpty()) {
+                if (songLength(mediaItems) == 0) {
                     RhythboxSongEmptyState(
                         describe = "黑胶唱机正静静等待，快去挑一首心动的旋律让它转动吧~",
                         buttonText = "去听歌",
@@ -140,35 +143,72 @@ fun PlayerMenuBottomSheet(
                         state = columnState,
                         modifier = Modifier.fillMaxWidth().weight(1f)
                     ) {
-                        items(songList.size) {
-                            val item = songList[it]
-                            PlayerMenuItem(
-                                isPlay = playUuid.value == item.uuid,
-                                isPlaying = isPlaying.value,
-                                no = it + 1,
-                                title = item.name,
-                                subTitle = item.artist ?: "未知歌手",
-                                isLike = item.isLike,
-                                onLike = {
-                                    scope.launch {
-                                        if (item.isLike) {
-                                            collectDao.delete(item.id)
-                                        } else {
-                                            collectDao.insert(CollectEntity(songId = item.id))
-                                        }
-                                        player.updateMediaItem(item.copy(isLike = !item.isLike))
-                                    }
-                                },
-                                onRemove = {
-                                    currentSong = item
-                                    showAlert = true
-                                },
-                                onClick = {
-                                    player.prepare(it)
-                                    player.play()
-                                })
-                            Spacer(modifier = Modifier.height(5.dp))
+                        when(val md = mediaItems ){
+                            is SongListType.LocalList ->{
+                                items(md.songList.size) {
+                                    val item = md.songList[it]
+                                    PlayerMenuItem(
+                                        isPlay = playUuid.value == item.uuid,
+                                        isPlaying = isPlaying.value,
+                                        no = it + 1,
+                                        title = item.name,
+                                        subTitle = item.artist ?: "未知歌手",
+                                        isLike = item.isLike,
+                                        onLike = {
+                                            scope.launch {
+                                                if (item.isLike) {
+                                                    collectDao.delete(item.id)
+                                                } else {
+                                                    collectDao.insert(CollectEntity(songId = item.id))
+                                                }
+                                                player.updateMediaItem(SongType.Local(item.copy(isLike = !item.isLike)))
+                                            }
+                                        },
+                                        onRemove = {
+                                            currentSong = SongType.Local(item)
+                                            showAlert = true
+                                        },
+                                        onClick = {
+                                            player.prepare(it)
+                                            player.play()
+                                        })
+                                    Spacer(modifier = Modifier.height(5.dp))
+                                }
+                            }
+                            is SongListType.NetworkList ->{
+                                items(md.songList.size) {
+                                    val song=md.songList[it]
+                                    val item = getSongInfo(SongType.Network(song))
+                                    PlayerMenuItem(
+                                        isPlay = playUuid.value == item!!.uuid,
+                                        isPlaying = isPlaying.value,
+                                        no = it + 1,
+                                        title = item.name,
+                                        subTitle = item.artist ?: "未知歌手",
+                                        isLike = item.isLike,
+                                        onLike = {
+                                            scope.launch {
+                                                if (item.isLike) {
+                                                    collectDao.delete(item.id)
+                                                } else {
+                                                    collectDao.insert(CollectEntity(songId = item.id))
+                                                }
+//                                                player.updateMediaItem(SongType.Local(item.copy(isLike = !item.isLike)))
+                                            }
+                                        },
+                                        onRemove = {
+                                            currentSong = SongType.Network(song)
+                                            showAlert = true
+                                        },
+                                        onClick = {
+                                            player.prepare(it)
+                                            player.play()
+                                        })
+                                    Spacer(modifier = Modifier.height(5.dp))
+                                }
+                            }
                         }
+
                     }
                 }
             }
@@ -187,6 +227,17 @@ fun PlayerMenuBottomSheet(
             }
         )
     }
+}
+
+fun songLength(mediaItems: SongListType): Int {
+  return when(mediaItems){
+      is SongListType.LocalList ->{
+           mediaItems.songList.size
+      }
+      is SongListType.NetworkList ->{
+          mediaItems.songList.size
+      }
+  }
 }
 
 @Composable

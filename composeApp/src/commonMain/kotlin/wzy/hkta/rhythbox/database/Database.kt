@@ -5,14 +5,15 @@ import androidx.room.ConstructedBy
 import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.Transaction
+import wzy.hkta.rhythbox.database.dao.*
 import wzy.hkta.rhythbox.expect.AppDatabaseConstructor
 
 @Database(
     entities = [SingerEntity::class, SongEntity::class, AlbumEntity::class, DirEntity::class, PlaylistSortEntity::class,
-        CollectEntity::class, LyricEntity::class, PlaylistEntity::class, PlaylistSongEntity::class],
-    version = 5,
+        CollectEntity::class, LyricEntity::class, PlaylistEntity::class, PlaylistSongEntity::class,PlayHistoryEntity::class,SongCache::class],
+    version = 7,
     autoMigrations = [
-        AutoMigration(from = 4, to = 5)
+        AutoMigration(from = 6, to = 7)
     ]
 )
 

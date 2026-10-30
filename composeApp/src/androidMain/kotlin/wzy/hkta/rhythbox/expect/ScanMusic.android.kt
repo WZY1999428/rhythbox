@@ -70,10 +70,6 @@ actual class ScanMusic(private val context: Context, database: AppDatabase) {
             val songs =
                 list.filter { it.extension in listOf("mp3", "flac", "ogg", "m4a", "aac", "wav") }
             val lyrics = list.filter { it.extension in listOf("lrc") }
-//            .map {
-//                LyricEntity(songId = it., lyric = it.readText(Charsets.UTF_8))
-//            }.toList()
-
 
             var len = songs.count().toFloat()
             for ((index, file) in songs.withIndex()) {

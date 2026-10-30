@@ -1,5 +1,10 @@
 package wzy.hkta.rhythbox.utils
 
+import com.google.common.graph.Network
+import wzy.hkta.rhythbox.database.PlaylistSongEntity
+import wzy.hkta.rhythbox.database.SongEntity
+import wzy.hkta.rhythbox.utils.fatchMusic.Song
+
 
 data class Lyric(
     val timeMillis: Int,
@@ -46,7 +51,14 @@ fun parseLyric(lyric: String?): List<Lyric>? {
     }
 
     // 🚀 最后按时间戳从小到大排个序，防止网易云返回乱序数据导致滚动抽风
-    return list.sortedBy { it.timeMillis }
+    return list
+        .sortedBy { it.timeMillis }
+        .groupBy { it.timeMillis }
+        .map { (_, lyrics) ->
+            lyrics.first().copy(
+                text = lyrics.joinToString("\n") { it.text }
+            )
+        }
 }
 
 private fun parseTimeToMillis(timeStr: String): Int {

@@ -63,7 +63,10 @@ kotlin {
             implementation(libs.kmpalette.core )
             implementation(libs.kmpalette.androidx.palette)
             implementation(libs.kmpalette.extensions.file)
-
+            implementation(libs.compose.shimmer)
+            implementation(libs.linroid.ketch.core)
+            implementation(libs.linroid.ketch.ktor)
+            implementation(libs.linroid.ketch.sqlite)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

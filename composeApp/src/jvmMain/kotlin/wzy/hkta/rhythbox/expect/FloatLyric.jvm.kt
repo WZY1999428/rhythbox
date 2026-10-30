@@ -1,9 +1,10 @@
 package wzy.hkta.rhythbox.expect
 
 actual class FloatLyric {
-    actual fun showLyric() {
+    actual fun showLyric(): Boolean {
+        return false
     }
 
-    actual fun hideLyric() {
+    actual fun hideLyric(close: Boolean) {
     }
 }

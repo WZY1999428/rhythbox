@@ -49,8 +49,9 @@ import rhythbox.composeapp.generated.resources.pause2
 import rhythbox.composeapp.generated.resources.play
 import rhythbox.composeapp.generated.resources.playlist
 import wzy.hkta.rhythbox.cssToColor
-import wzy.hkta.rhythbox.pages.playerScreen.PlayerScreen
+import wzy.hkta.rhythbox.screens.playerScreen.PlayerScreen
 import wzy.hkta.rhythbox.utils.Rhythbox
+import wzy.hkta.rhythbox.utils.SongType
 import wzy.hkta.rhythbox.utils.marqueeText
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -61,6 +62,8 @@ fun BottomControl(
     var showMenu by rememberSaveable { mutableStateOf(false) }
     val navigator: Navigator = LocalNavigator.currentOrThrow;
     val player = Rhythbox.player;
+
+    val playerLoading = player.playerLoading.collectAsState();
     val progress = player.progress.collectAsState();
     val duration = player.duration.collectAsState();
     val currentSong = player.currentSong.collectAsState()
@@ -68,13 +71,17 @@ fun BottomControl(
     var isSeeking by remember { mutableStateOf(false) }
     var sliderValue by remember { mutableFloatStateOf(0f) }
 
-    val cover = currentSong.value?.cover
+    val cover = when (val cur = currentSong.value) {
+        is SongType.Local -> cur.song.cover
+        is SongType.Network -> cur.song.cover
+        null -> null
+    }
 
     Box(
         modifier = Modifier.fillMaxWidth().height(55.dp)
     ) {
         Row(
-            modifier = Modifier.fillMaxSize().align(alignment = Alignment.TopStart)
+            modifier = Modifier.fillMaxWidth().height(53.dp).align(alignment = Alignment.TopStart)
                 .background(MaterialTheme.colorScheme.primary.copy(0.8f))
                 .clickable {
                     navigator.push(PlayerScreen())
@@ -99,8 +106,15 @@ fun BottomControl(
                     .fillMaxHeight().padding(horizontal = 10.dp, vertical = 6.dp),
                 verticalArrangement = Arrangement.Center
             ) {
+
+                val (name, artist) = when (val cur = currentSong.value) {
+                    is SongType.Local -> cur.song.name to cur.song.artist
+                    is SongType.Network -> cur.song.title to cur.song.artists.joinToString("/") { it.artistName }
+                    null -> null to null
+                }
+
                 Text(
-                    currentSong.value?.name ?: "",
+                    name ?: "",
                     color = "#0C0807".cssToColor(),
                     maxLines = 1,
                     modifier = Modifier.marqueeText(),
@@ -108,20 +122,22 @@ fun BottomControl(
                     fontSize = 14.sp
                 )
                 Text(
-                    currentSong.value?.artist ?: "",
+                    artist ?: "",
                     color = "#C08C7B".cssToColor(),
                     fontSize = 12.sp
                 )
             }
             IconButton(onClick = { player.togglePlay() }) {
-                Icon(
-                    painter = painterResource(
-                        if (isPlaying.value) Res.drawable.pause2 else Res.drawable.play
-                    ),
-                    contentDescription = null,
-                    tint = Color.Unspecified,
-                    modifier = Modifier.size(20.dp)
-                )
+                when (playerLoading.value) {
+                    false -> Icon(
+                        painterResource(if (isPlaying.value) Res.drawable.pause2 else Res.drawable.play),
+                        modifier = Modifier.size(20.dp),
+                        contentDescription = null,
+                        tint = Color.Unspecified
+                    )
+
+                    true -> CircularBarSpinner()
+                }
             }
 
             IconButton(onClick = { showMenu = true }) {
@@ -165,7 +181,7 @@ fun BottomControl(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .fillMaxHeight()
-                                .background(Color.White)
+                                .background(Color.Gray.copy(alpha = 0.2f))
                         )
                         // 已播放进度
                         Box(

@@ -26,15 +26,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import cafe.adriel.voyager.navigator.Navigator
-import cafe.adriel.voyager.transitions.ScreenTransition
-import cafe.adriel.voyager.transitions.ScreenTransitionContent
 import cafe.adriel.voyager.transitions.SlideTransition
+import com.linroid.ketch.core.Ketch
+import com.linroid.ketch.engine.KtorHttpEngine
 import wzy.hkta.rhythbox.database.AppDatabase
 import wzy.hkta.rhythbox.expect.FloatLyric
 import wzy.hkta.rhythbox.expect.RhythboxPlayer
 import wzy.hkta.rhythbox.expect.ScanMusic
-import wzy.hkta.rhythbox.pages.homeScreen.HomeScreen
+import wzy.hkta.rhythbox.screens.homeScreen.HomeScreen
 import wzy.hkta.rhythbox.theme.*
+import wzy.hkta.rhythbox.utils.DownloadEngine
 import wzy.hkta.rhythbox.utils.Rhythbox
 import wzy.hkta.rhythbox.utils.SettingManager
 import wzy.hkta.rhythbox.utils.SnackbarManager
@@ -63,7 +64,8 @@ fun App(
     rhythboxPlayer: RhythboxPlayer,
     database: AppDatabase,
     scanMusic: ScanMusic,
-    floatLyric: FloatLyric
+    floatLyric: FloatLyric,
+    downloadEngine: Ketch
 ) {
     val show = remember { mutableStateOf(false) }
     val currentSong = rhythboxPlayer.currentSong.collectAsState()
@@ -73,6 +75,7 @@ fun App(
     LaunchedEffect(Unit) {
         SnackbarManager.bind(snackbarHostState)
         Rhythbox.init(rhythboxPlayer, database, scanMusic, floatLyric)
+        DownloadEngine.initEngine(downloadEngine)
         show.value = true
     }
     LaunchedEffect(currentSong.value, show.value) {
