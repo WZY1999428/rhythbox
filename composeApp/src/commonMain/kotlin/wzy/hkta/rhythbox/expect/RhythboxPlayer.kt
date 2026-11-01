@@ -33,6 +33,7 @@ expect class RhythboxPlayer {
     val progress: StateFlow<Float>
     fun prepare(mediaItemIndex: Int)
     fun play()
+    fun shufflePlay()
     fun togglePlay()
     fun addSong(song: SongType)
     fun delSong(song: SongType)

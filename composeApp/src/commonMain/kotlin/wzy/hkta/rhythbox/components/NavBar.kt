@@ -34,6 +34,7 @@ import wzy.hkta.rhythbox.utils.marqueeText
 @Composable
 fun NavBar(
     title: String? = null,
+    @Suppress("ModifierParameter") modifier: Modifier = Modifier,
     iconColor: Color = Color.Black,
     titleColor: Color = Color.Black,
     background: Color = Color.White,
@@ -50,7 +51,7 @@ fun NavBar(
                     strokeWidth = 1.dp.toPx()
                 )
             }
-        }.windowInsetsPadding(WindowInsets.statusBars).height(45.dp)
+        }.windowInsetsPadding(WindowInsets.statusBars).height(45.dp).then(modifier)
     ) {
         IconButton(
             modifier = Modifier.align(Alignment.CenterStart),

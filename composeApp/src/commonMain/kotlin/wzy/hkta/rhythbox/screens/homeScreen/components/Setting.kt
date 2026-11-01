@@ -1,6 +1,7 @@
 package wzy.hkta.rhythbox.screens.homeScreen.components
 
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -36,19 +37,24 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import cafe.adriel.voyager.navigator.LocalNavigator
+import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.navigator.currentOrThrow
+import coil3.compose.AsyncImage
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 import rhythbox.composeapp.generated.resources.Res
+import rhythbox.composeapp.generated.resources.avatar
 import rhythbox.composeapp.generated.resources.earphone
 import rhythbox.composeapp.generated.resources.email
 import rhythbox.composeapp.generated.resources.lock2
@@ -59,8 +65,11 @@ import rhythbox.composeapp.generated.resources.theme
 import rhythbox.composeapp.generated.resources.warn
 import wzy.hkta.rhythbox.components.MAlertDialog
 import wzy.hkta.rhythbox.screens.ScanMusicScreen
+import wzy.hkta.rhythbox.screens.user.LoginScreen
+import wzy.hkta.rhythbox.screens.user.UserProfileScreen
 import wzy.hkta.rhythbox.utils.Rhythbox
 import wzy.hkta.rhythbox.utils.SettingManager
+import wzy.hkta.rhythbox.utils.UserManager
 import kotlin.Boolean
 
 @Composable
@@ -89,11 +98,13 @@ fun Setting(modifier: Modifier = Modifier, onClose: () -> Unit) {
                 .windowInsetsPadding(WindowInsets.statusBars)
                 .verticalScroll(rememberScrollState())
         ) {
-            Text(
-                "设置",
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth().height(45.dp)
-            )
+//            Text(
+//                "设置",
+//                textAlign = TextAlign.Center,
+//                modifier = Modifier.fillMaxWidth().height(45.dp)
+//            )
+
+            UserCard(navigator)
             Column(
                 modifier = Modifier.fillMaxWidth().weight(1f)
                     .padding(10.dp)
@@ -103,12 +114,6 @@ fun Setting(modifier: Modifier = Modifier, onClose: () -> Unit) {
 
                 SettingCard(title = "音乐库与文件管理") {
                     Column(modifier = cardColModifier) {
-//                        SettingRow(
-//                            icon = Res.drawable.scanfolder,
-//                            content = {
-//                                SettingRowTitle("管理扫描路径")
-//                            },
-//                        )
                         SettingRow(
                             icon = Res.drawable.scanning2,
                             showBottomBorder = false,
@@ -123,12 +128,6 @@ fun Setting(modifier: Modifier = Modifier, onClose: () -> Unit) {
                 Spacer(modifier = Modifier.height(20.dp))
                 SettingCard(title = "播放与音质设置") {
                     Column(modifier = cardColModifier) {
-//                        SettingRow(
-//                            icon = Res.drawable.frequency,
-//                            content = {
-//                                SettingRowTitle("音质控制")
-//                            },
-//                        )
                         SettingRow(
                             icon = Res.drawable.lyrics,
                             content = {
@@ -164,7 +163,6 @@ fun Setting(modifier: Modifier = Modifier, onClose: () -> Unit) {
                     }
                 }
                 Spacer(modifier = Modifier.height(20.dp))
-//                SettingCard(title = "界面与主题设置") {
                 SettingCard(title = "主题设置") {
                     Column(modifier = cardColModifier) {
                         SettingRow(
@@ -181,25 +179,6 @@ fun Setting(modifier: Modifier = Modifier, onClose: () -> Unit) {
                                     onChangeValue = { SettingManager.changeSystemInDarkTheme(it) })
                             }
                         )
-//                        SettingRow(
-//                            content = {
-//                                SettingRowTitle(
-//                                    "动态主题",
-//                                    subTitle = "根据音乐封面提取主题色(只播放界面)"
-//                                )
-//                            },
-//                            showBottomBorder = false,
-//                            action = {
-//                                SettingSwitch(checked = true, onChangeValue = {})
-//                            }
-//                        )
-//                        SettingRow(
-//                            icon = Res.drawable.lang,
-//                            showBottomBorder = false,
-//                            content = {
-//                                SettingRowTitle("全局字体大小")
-//                            },
-//                        )
                     }
                 }
                 Spacer(modifier = Modifier.height(20.dp))
@@ -265,7 +244,7 @@ fun Setting(modifier: Modifier = Modifier, onClose: () -> Unit) {
         MAlertDialog(
             show = showAlertDialog,
             title = "隐私政策/用户协议",
-            content =  """
+            content = """
 欢迎来到乐动盒（RhythBox）！
 
 在您开启治愈的音乐之旅前，小精灵在此向您做最诚挚的【安心隐私保证】：
@@ -277,6 +256,82 @@ fun Setting(modifier: Modifier = Modifier, onClose: () -> Unit) {
 请您仔细阅读并理解上述内容。点击“同意”即代表您接受我们的《用户协议》与《隐私政策》，让我们一起摇滚吧！
 """.trimIndent(),
             onConfirm = { showAlertDialog = false })
+    }
+}
+
+@Composable
+private fun UserCard(navigator: Navigator) {
+    val user by UserManager.userInfo.collectAsState()
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(90.dp)
+            .clickable(
+                indication = null,
+                interactionSource = remember { MutableInteractionSource() }
+            ) {
+                if (user == null) {
+                    navigator.push(LoginScreen())
+                } else {
+                    navigator.push(UserProfileScreen())
+                }
+            }
+            .padding(horizontal = 20.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+
+        if (user?.avatar != null) {
+            // 用户头像
+            AsyncImage(
+                model = user?.avatar,
+                contentDescription = null,
+                modifier = Modifier
+                    .size(54.dp)
+                    .clip(CircleShape),
+                contentScale = ContentScale.Crop
+            )
+        } else {
+            // 用户头像
+            Image(
+                painter = painterResource(Res.drawable.avatar),
+                contentDescription = null,
+                modifier = Modifier
+                    .size(54.dp)
+                    .clip(CircleShape),
+                contentScale = ContentScale.Crop
+            )
+        }
+
+
+        Spacer(Modifier.width(14.dp))
+
+        Column(
+            modifier = Modifier.weight(1f)
+        ) {
+            Text(
+                text = user?.nickname ?: "未登录",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold
+            )
+
+            Spacer(Modifier.height(5.dp))
+
+            Text(
+                text = if (user == null) {
+                    "点击登录账号，享受更多功能"
+                } else {
+                    "查看个人资料"
+                },
+                fontSize = 12.sp,
+                color = Color.Gray
+            )
+        }
+
+        Icon(
+            painter = painterResource(Res.drawable.right),
+            contentDescription = null,
+            tint = Color.Gray
+        )
     }
 }
 

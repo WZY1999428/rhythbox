@@ -2,16 +2,20 @@ package wzy.hkta.rhythbox.screens.search.netSearch
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.absoluteOffset
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
@@ -20,6 +24,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -35,6 +40,7 @@ import rhythbox.composeapp.generated.resources.champions
 import rhythbox.composeapp.generated.resources.close_grey
 import rhythbox.composeapp.generated.resources.delete
 import rhythbox.composeapp.generated.resources.recently
+import wzy.hkta.rhythbox.utils.StorageManager
 
 
 @Composable
@@ -58,10 +64,11 @@ fun SearchDiscovery(
 fun SearchHistory(
     onSearch: (String) -> Unit = {}
 ) {
-    var history by remember {
-        mutableStateOf(
-            listOf("周杰伦", "林俊杰", "晴天", "稻香", "告白气球")
-        )
+    val history = remember {
+        mutableStateListOf<String>().apply {
+            val savedList = StorageManager.getItem<List<String>>("search-history") ?: emptyList()
+            addAll(savedList)
+        }
     }
 
     Column(
@@ -89,7 +96,10 @@ fun SearchHistory(
                 )
 
                 IconButton(
-                    onClick = { history = emptyList() }
+                    onClick = {
+                        history.clear()
+                        StorageManager.setItem("search-history", history.toList())
+                    }
                 ) {
                     Icon(
                         painter = painterResource(Res.drawable.delete),
@@ -107,19 +117,14 @@ fun SearchHistory(
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 history.forEach { keyword ->
-                    Row(
+                    Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(10.dp))
                             .background(
-                                MaterialTheme.colorScheme.surfaceVariant
-                                    .copy(alpha = 0.55f)
+                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
+                                RoundedCornerShape(10.dp)
                             )
                             .clickable { onSearch(keyword) }
-                            .padding(
-                                horizontal = 12.dp,
-                                vertical = 9.dp
-                            ),
-                        verticalAlignment = Alignment.CenterVertically
+                            .padding(horizontal = 12.dp, vertical = 9.dp)
                     ) {
                         Text(
                             text = keyword,
@@ -127,18 +132,31 @@ fun SearchHistory(
                             color = MaterialTheme.colorScheme.onSurface
                         )
 
-                        Spacer(Modifier.width(6.dp))
-
-                        Icon(
-                            painter = painterResource(Res.drawable.close_grey),
-                            contentDescription = "删除 $keyword",
+                        Box(
                             modifier = Modifier
-                                .size(12.dp)
-                                .clickable {
-                                    history = history - keyword
+                                .size(16.dp)
+                                .align(Alignment.TopEnd)
+                                .absoluteOffset(x = 15.dp, y = (-15).dp)
+                                .background(
+                                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
+                                    CircleShape
+                                )
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null
+                                ) {
+                                    history.remove(keyword)
+                                    StorageManager.setItem("search-history", history.toList())
                                 },
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                painter = painterResource(Res.drawable.close_grey),
+                                contentDescription = "删除 $keyword",
+                                modifier = Modifier.size(10.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                 }
             }
@@ -150,6 +168,8 @@ fun SearchHistory(
 fun HotKeyword(
     onSearch: (String) -> Unit = {}
 ) {
+
+
     val keywords = listOf(
         "周杰伦",
         "热门新歌",

@@ -47,12 +47,10 @@ import kotlin.coroutines.cancellation.CancellationException
 import kotlin.random.Random
 import kotlin.time.Duration.Companion.milliseconds
 
-@RequiresApi(Build.VERSION_CODES.O)
 actual class RhythboxPlayer(private val context: Context, val database: AppDatabase) {
     private var exoPlayerSession: MediaController? = null
     private var job: Job? = null
     private val songDao = database.getSongDao()
-    private val downloadMap = mutableMapOf<Int, MediaItem>()
     private var isInitRestorePlaylist = false
     private val _mediaItems = MutableStateFlow<SongListType>(SongListType.LocalList(emptyList()))
     private var _mediaItems2 = listOf<MediaItem>()
@@ -83,7 +81,6 @@ actual class RhythboxPlayer(private val context: Context, val database: AppDatab
     actual val playUuid = _playUuid.asStateFlow()
 
 
-
     actual val currentSong = _currentSong.asStateFlow()
     actual val lyricStatus = _lyricStatus.asStateFlow()
 
@@ -104,7 +101,6 @@ actual class RhythboxPlayer(private val context: Context, val database: AppDatab
         initMediaController()
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
     fun initMediaController() {
         val sessionToken =
             SessionToken(context, ComponentName(context, PlaybackService::class.java))
@@ -142,14 +138,13 @@ actual class RhythboxPlayer(private val context: Context, val database: AppDatab
                 ) {
                     when (reason) {
                         Player.MEDIA_ITEM_TRANSITION_REASON_SEEK, Player.MEDIA_ITEM_TRANSITION_REASON_AUTO -> {
-                            mediaItem?.let {
-                                // 直接从播放器获取当前准确的媒体项索引，避免用 indexOf 查错
-                                val index = exoPlayerSession?.currentMediaItemIndex ?: return
-                                if (index >= 0) {
-                                    _playIndex.value = index
-                                    setNextInfo(index)
-                                    savePlayerInfo()
-                                }
+                            // 直接从播放器获取当前准确的媒体项索引，避免用 indexOf 查错
+                            val index = exoPlayerSession?.currentMediaItemIndex ?: return
+                            println("indexindexindexindex $index")
+                            if (index >= 0) {
+                                _playIndex.value = index
+                                setNextInfo(index)
+                                savePlayerInfo()
                             }
                         }
 
@@ -253,8 +248,11 @@ actual class RhythboxPlayer(private val context: Context, val database: AppDatab
                     val cacheList = songDao.getSongCache()
                     val newMediaItems = songList.map { buildNetMediaItems(it, cacheList) }
                     withContext(Dispatchers.Main) {
-                        exoPlayerSession?.setMediaItems(newMediaItems, true)
-                        if (startIndex != null) prepare(startIndex)
+
+                        println("startIndexstartIndexstartIndexstartIndex $startIndex")
+
+                        exoPlayerSession?.setMediaItems(newMediaItems, startIndex ?: 0, 0L)
+                        prepare(startIndex ?: 0)
                     }
                 }
             }
@@ -551,8 +549,6 @@ actual class RhythboxPlayer(private val context: Context, val database: AppDatab
             else -> cache.filePath
         }
 
-        println("urlurlurlurlurl $url $cacheList")
-
         return MediaItem.Builder()
             .setMediaId(url)
             .setUri(url)
@@ -594,6 +590,16 @@ actual class RhythboxPlayer(private val context: Context, val database: AppDatab
     actual fun play() {
         if (mediaItemsIsEmpty()) return
         exoPlayerSession?.play()
+    }
+
+
+    actual fun shufflePlay() {
+        val player = exoPlayerSession ?: return
+        if (mediaItemsIsEmpty()) return
+        _playMode.value = PlayMode.SHUFFLE
+        player.shuffleModeEnabled = true
+        player.repeatMode = REPEAT_MODE_ALL
+        next()
     }
 
     actual fun togglePlay() {

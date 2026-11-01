@@ -19,6 +19,7 @@ import rhythbox.composeapp.generated.resources.Res
 import rhythbox.composeapp.generated.resources.more
 import rhythbox.composeapp.generated.resources.music
 import rhythbox.composeapp.generated.resources.right
+import wzy.hkta.rhythbox.utils.fatchMusic.MUSIC_BASE_URL
 
 /**
  * 1. 单曲项优化：贴合主流音乐软件的单曲排版，突出标题与副标题（歌手·专辑）
@@ -124,7 +125,8 @@ fun SearchAlbumItem(
 
             Text(
                 text = buildString {
-                    append(artist)
+                    append(artist.take(15))
+                    if (artist.length > 15) append("…")
                     if (!year.isNullOrBlank()) {
                         append(" · ")
                         append(year)
@@ -188,7 +190,7 @@ fun SearchPlaylistItem(
                     if (songCount != null) {
                         append("${songCount}首")
                     }
-                    if (!creator.isBlank()) {
+                    if (creator.isNotBlank()) {
                         if (isNotEmpty()) append(" · ")
                         append("by $creator")
                     }
@@ -298,7 +300,7 @@ private fun SearchCover(
     ) {
         if (!coverUrl.isNullOrBlank()) {
             AsyncImage(
-                model = coverUrl,
+                model ="$MUSIC_BASE_URL$coverUrl" ,
                 contentDescription = null,
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop

@@ -37,9 +37,14 @@ import rhythbox.composeapp.generated.resources.back
 import rhythbox.composeapp.generated.resources.search
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.sp
@@ -145,7 +150,9 @@ class SearchScreen : Screen {
 @Composable
 fun EnhancedSearchBar(
     keyword: String,
-    onKeywordChange: (String) -> Unit
+    onKeywordChange: (String) -> Unit,
+    onFocusedChange: ((Boolean) -> Unit)? = null,
+    onSearch: (() -> Unit)? = null,
 ) {
     BasicTextField(
         value = keyword,
@@ -153,7 +160,9 @@ fun EnhancedSearchBar(
         // 1. 指定明确的高度，让搜索框显得精致大气
         modifier = Modifier
             .fillMaxWidth()
-            .height(40.dp),
+            .height(40.dp).onFocusChanged { focusState ->
+                onFocusedChange?.invoke(focusState.isFocused)
+            },
         // 2. 统一正文文本样式，防止其随系统默认字体变矮
         textStyle = TextStyle(
             color = Color(0xFF2C3E50), // 沉稳的深灰色正文
@@ -161,6 +170,7 @@ fun EnhancedSearchBar(
         ),
         singleLine = true,
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search), // 键盘右下角显示“搜索”
+        keyboardActions = KeyboardActions(onSearch = { onSearch?.invoke() }),
         decorationBox = { innerTextField ->
             Row(
                 modifier = Modifier

@@ -29,7 +29,6 @@ class MainActivity : ComponentActivity() {
     private val floatLyric = FloatLyric(this)
 
     @SuppressLint("RememberReturnType")
-    @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val savePath = File(this.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), "rhythbox")

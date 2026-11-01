@@ -99,8 +99,8 @@ class NetPlaylistSongScreen(
         var showSongBottomSheet by remember { mutableStateOf(false) }
         var showSortSongBottomSheet by remember { mutableStateOf(false) }
         var selectSong by remember { mutableStateOf<SongEntity?>(null) }
-        val playUuid = player.playUuid.collectAsState()
-        val isPlaying = player.isPlaying.collectAsState()
+        val playUuid by player.playUuid.collectAsState()
+        val isPlaying by player.isPlaying.collectAsState()
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
             val maxWidth = constraints.maxWidth.toFloat()
             val maxHeight = with(density) { constraints.maxHeight.toDp() }
@@ -227,8 +227,8 @@ class NetPlaylistSongScreen(
                                     title = item.title,
                                     subTitle = item.artists.joinToString("/") { ar -> ar.artistName },
                                     duration = item.duration,
-                                    isPlay = isCurrentPlaying(playUuid.value, item.uuid),
-                                    isPlaying = isPlaying.value,
+                                    isPlay = isCurrentPlaying(playUuid, item.uuid),
+                                    isPlaying = isPlaying,
                                     no = it + 1,
                                     onMoreClick = {
 //                                        selectSong = item
@@ -240,7 +240,9 @@ class NetPlaylistSongScreen(
                                 )
                             }
                         }
-                        BottomControl()
+                        if (playUuid != null) {
+                            BottomControl()
+                        }
                     }
                 }
             }
@@ -416,7 +418,7 @@ class NetPlaylistSongViewModel(
 
     fun play(index: Int = 0) {
         player.let { p ->
-            p.resetMediaItems(key, SongListType.NetworkList(songList.value), false)
+            p.resetMediaItems(key, SongListType.NetworkList(songList.value), false,index)
             p.prepare(index)
             p.play()
         }

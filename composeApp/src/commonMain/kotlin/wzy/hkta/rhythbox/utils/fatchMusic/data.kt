@@ -7,7 +7,7 @@ import kotlinx.serialization.Serializable
 data class Response<T>(
     val code: Int,
     val message: String,
-    val data: T?
+    val data: T? = null
 )
 
 @Serializable
@@ -48,7 +48,7 @@ data class PlaylistInfo(
 
 @Serializable
 data class SongArtist(
-    val artistId: String,
+    val artistId: Long,
     val artistName: String,
 )
 
@@ -73,18 +73,6 @@ data class Language(
     val lang: String
 )
 
-@Serializable
-data class Artist(
-    val id: Long,
-    val name: String,
-    val realName: String,
-    val pinyin: String? = null,
-    val gender: String,
-    val description: String,
-    val sort: Int,
-    val avatar: String? = null,
-    val cover: String? = null
-)
 
 @Serializable
 data class LyricData(
@@ -113,10 +101,17 @@ data class Playlist(
     val sort: Int,
     val description: String,
     val favoriteTotal: Long,
+    val tags: List<PlaylistTag>,
     val playTotal: Long,
     val clickTotal: Long
 )
 
+@Serializable
+data class PlaylistTag(
+    val id: Long,
+    val title: String,
+    val value: String
+)
 
 @Serializable
 data class Album(
@@ -125,9 +120,64 @@ data class Album(
     val releaseDate: String,
     val company: String,
     val type: String,
-    val genre: String,
+    val genre: List<String>,
     val description: String,
-    val artistId: String? = null,
-    val artistName: String? = null,
+    val artists: List<SongArtist>,
     val cover: String? = null
+)
+
+@Serializable
+data class Artist(
+    val id: Long,
+    val name: String,
+    val realName: String,
+    val pinyin: String? = null,
+    val gender: String,
+    val description: String,
+    val sort: Int,
+    val avatar: String? = null,
+    val cover: String? = null
+)
+
+@Serializable
+data class PlaylistBanner(
+    val id: Long,
+    val title: String,
+    val value: String,
+    val desc: String? = "",
+    val type: String,
+    val cover: String
+)
+
+@Serializable
+data class Square(
+    val banner: List<PlaylistBanner>,
+    val hotPlaylist: List<Playlist>,
+)
+
+@Serializable
+data class PlaylistTab(
+    val key: String,
+    val label: String,
+)
+
+
+@Serializable
+data class UserInfo(
+    val id: Long,
+    val username: String,
+    val nickname: String,
+    val avatar: String,
+    val email: String,
+    val phone: Int,
+    val gender: Int,
+    val birthday: String,
+    val signature: String,
+)
+
+
+@Serializable
+data class LoginRequest(
+    val username: String,
+    val password: String
 )

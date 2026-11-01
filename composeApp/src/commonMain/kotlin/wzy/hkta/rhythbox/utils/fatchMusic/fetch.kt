@@ -7,14 +7,18 @@ import io.ktor.client.plugins.logging.Logging
 import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.client.request.get
 import io.ktor.client.request.header
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
+import io.ktor.http.ContentType
+import io.ktor.http.contentType
 import kotlinx.serialization.json.Json
 import wzy.hkta.rhythbox.utils.generateNetMediaId
 import wzy.hkta.rhythbox.database.AppDatabase
 import wzy.hkta.rhythbox.database.SongCache
 import wzy.hkta.rhythbox.database.SongEntity
 
-const val BASE_URL = "http://192.168.0.195:8848"
+const val MUSIC_BASE_URL = "http://192.168.0.195:8848"
 
 object FetchMusic {
     val json = Json {
@@ -24,7 +28,7 @@ object FetchMusic {
         install(Logging)
         install(HttpCookies)
         defaultRequest {
-            url("$BASE_URL/api/")
+            url("$MUSIC_BASE_URL/api/")
             header(
                 "user-agent",
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36"
@@ -93,7 +97,7 @@ object FetchMusic {
             data.copy(
                 list = data.list.map {
                     it.copy(
-                        cover = it.cover?.let { cover -> "$BASE_URL/$cover" }
+                        cover = it.cover?.let { cover -> "$MUSIC_BASE_URL/$cover" }
                     )
                 }
             )
@@ -121,7 +125,7 @@ object FetchMusic {
                 )
             }
         }!!
-        return data.copy(cover = if (data.cover == null) null else "$BASE_URL/${data.cover}")
+        return data.copy(cover = if (data.cover == null) null else "$MUSIC_BASE_URL/${data.cover}")
     }
 
     suspend fun incrementPlayTotal(songId: Long): PlaylistInfo {
@@ -133,7 +137,7 @@ object FetchMusic {
                 )
             }
         }!!
-        return data.copy(cover = if (data.cover == null) null else "$BASE_URL/${data.cover}")
+        return data.copy(cover = if (data.cover == null) null else "$MUSIC_BASE_URL/${data.cover}")
     }
 
 
@@ -161,10 +165,91 @@ object FetchMusic {
     }
 
 
-    suspend fun <T> search(keyword: String, pageIndex: Int = 1, pageSize: Int = 20): ListData<T> {
+    suspend fun getArtist(id: Long): Artist {
+        val data = getOrJson<Artist>("music/artist/info") {
+            url {
+                parameters.append("artistId", id.toString())
+            }
+        }!!
+        return data.copy(
+            cover = "$MUSIC_BASE_URL/${data.cover}",
+            avatar = "$MUSIC_BASE_URL/${data.avatar}",
+        )
+    }
+
+    suspend fun getArtistSong(id: Long): List<Song> {
+        val data = getOrJson<List<Song>>("music/artist/song") {
+            url {
+                parameters.append("artistId", id.toString())
+            }
+        }!!
+        return data.toNetSongs("artist-song-$id")
+    }
+
+
+    suspend fun getAlbum(id: Long): Album {
+        val data = getOrJson<Album>("music/album/info") {
+            url {
+                parameters.append("albumId", id.toString())
+            }
+        }!!
+        return data.copy(
+            cover = "$MUSIC_BASE_URL/${data.cover}"
+        )
+    }
+
+    suspend fun getAlbumSong(id: Long): List<Song> {
+        val data = getOrJson<List<Song>>("music/album/song") {
+            url {
+                parameters.append("albumId", id.toString())
+            }
+        }!!
+        return data.toNetSongs("artist-album-$id")
+    }
+
+    suspend fun getPlaylistSquare(): Square {
+        val data = getOrJson<Square>("music/playlist/square")!!
+        return data.copy(
+            hotPlaylist = data.hotPlaylist.toNetPlaylist(),
+            banner = data.banner.map {
+                it.copy(cover = "$MUSIC_BASE_URL/${it.cover}")
+            }
+        )
+    }
+
+    suspend fun getPlaylistRecommend(type: String): ListData<Playlist> {
+        val data = getOrJson<ListData<Playlist>>("music/playlist/recom") {
+            url { parameters.append("type", type) }
+        }!!
+        println(data)
+        return data.copy(list = data.list.toNetPlaylist())
+    }
+
+    suspend fun getPlaylistTabs(): List<PlaylistTab> {
+        return getOrJson<List<PlaylistTab>>("music/playlist/tabs")!!
+    }
+
+    suspend fun getUserInfo(): UserInfo {
+        return getOrJson<UserInfo>("user/userInfo")!!
+    }
+
+    suspend fun login(params: LoginRequest) {
+        client.post("user/login") {
+            contentType(ContentType.Application.Json)
+            setBody(params)
+        }
+    }
+
+    suspend inline fun <reified T> search(
+        keyword: String,
+        type: String,
+        pageIndex: Int = 1,
+        pageSize: Int = 20
+    ): ListData<T> {
         val data = getOrJson<ListData<T>>("music/song/search") {
             url {
                 parameters.append("keyword", keyword)
+                parameters.append("type", type)
                 parameters.append("pageIndex", pageIndex.toString())
                 parameters.append("pageSize", pageSize.toString())
             }
@@ -182,14 +267,20 @@ object FetchMusic {
 
 
 private fun List<Song>.toNetSongs(key: String = ""): List<Song> {
-
     return map { song ->
-
         song.copy(
-            cover = "$BASE_URL/${song.cover}",
-            url = "$BASE_URL/api/music/song/url?songId=${song.id}",
+            cover = "$MUSIC_BASE_URL/${song.cover}",
+            url = "$MUSIC_BASE_URL/api/music/song/url?songId=${song.id}",
             uuid = generateNetMediaId(key, song),
             duration = song.duration * 1000
+        )
+    }
+}
+
+private fun List<Playlist>.toNetPlaylist(): List<Playlist> {
+    return map { song ->
+        song.copy(
+            cover = "$MUSIC_BASE_URL/${song.cover}",
         )
     }
 }
