@@ -19,7 +19,7 @@ import rhythbox.composeapp.generated.resources.Res
 import rhythbox.composeapp.generated.resources.more
 import rhythbox.composeapp.generated.resources.music
 import rhythbox.composeapp.generated.resources.right
-import wzy.hkta.rhythbox.utils.fatchMusic.MUSIC_BASE_URL
+import wzy.hkta.rhythbox.fatchMusic.MUSIC_BASE_URL
 
 /**
  * 1. 单曲项优化：贴合主流音乐软件的单曲排版，突出标题与副标题（歌手·专辑）
@@ -91,7 +91,7 @@ fun SearchSongItem(
  * 2. 专辑项列表样式优化（若采用横向列表）
  */
 @Composable
-fun SearchAlbumItem(
+fun AlbumItem(
     title: String,
     artist: String,
     coverUrl: String? = null,
@@ -152,7 +152,7 @@ fun SearchAlbumItem(
  * 3. 歌单项优化：完美对齐截图二的歌单样式（标题 + 播放量/歌曲数）
  */
 @Composable
-fun SearchPlaylistItem(
+fun PlaylistItem(
     title: String,
     creator: String,
     coverUrl: String? = null,
@@ -219,7 +219,7 @@ fun SearchPlaylistItem(
  * 4. 歌手项优化：精确对应截图一的“歌手”列表风格（圆形头像 + 艺人名 + 单曲/专辑数统计）
  */
 @Composable
-fun SearchArtistItem(
+fun ArtistItem(
     name: String,
     alias: String? = null,         // 比如英文名 (Jay Chou)
     songCount: Int? = null,        // 单曲数

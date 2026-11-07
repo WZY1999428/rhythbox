@@ -67,95 +67,91 @@ internal fun Lyrics(
             scrollOffset = -135 // 💡 这个数值你可以根据你的 260.dp 高度自己微调
         )
     }
-    Box(
-        modifier = Modifier.height(height.dp).fillMaxWidth().then(modifier),
+
+    LazyColumn(
+        state = lazyListState,
+        modifier = Modifier.fillMaxSize().then(modifier),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        when (lyricStatus) {
+            is Finished -> {
+                val lyric = lyricStatus.data.lyric
+                val tlyric = lyricStatus.data.tlyric
 
-        LazyColumn(
-            state = lazyListState,
-            modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            when (lyricStatus) {
-                is Finished -> {
-                    val lyric = lyricStatus.data.lyric
-                    val tlyric = lyricStatus.data.tlyric
-
-                    items(lyric.size) {
-                        val item = lyric[it]
-                        val tItem = tlyric?.getOrNull(it)
-                        val tl = if (tItem != null) "\n ${tItem.text}" else ""
-                        if (currentIndex == it) {
-                            CurrentLyric("${item.text} $tl")
-                        } else {
-                            Text(
-                                "${item.text} $tl",
-                                fontSize = 18.sp, lineHeight = 30.sp,
-                                textAlign = TextAlign.Center,
-                                modifier = modifier.fillMaxWidth(0.8f),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.7f)
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(10.dp))
+                items(lyric.size) {
+                    val item = lyric[it]
+                    val tItem = tlyric?.getOrNull(it)
+                    val tl = if (tItem != null) "\n ${tItem.text}" else ""
+                    if (currentIndex == it) {
+                        CurrentLyric("${item.text} $tl")
+                    } else {
+                        Text(
+                            "${item.text} $tl",
+                            fontSize = 18.sp, lineHeight = 30.sp,
+                            textAlign = TextAlign.Center,
+                            modifier = modifier.fillMaxWidth(0.8f),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.7f)
+                        )
                     }
-                    items(3) {
-                        Spacer(modifier = Modifier.height(30.dp))
-                    }
+                    Spacer(modifier = Modifier.height(10.dp))
                 }
-
-                Init -> item {
-                    Text(
-                        "欢迎使用乐动盒",
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = Color.Black.copy(alpha = 0.7f),
-                        letterSpacing = 1.sp,
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp),
-                        textAlign = TextAlign.Center
-                    )
-                }
-
-                Loading -> item {
-                    Text(
-                        text = "歌词加载中...",
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = Color.Black.copy(alpha = 0.7f),
-                        letterSpacing = 1.sp,
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp),
-                        textAlign = TextAlign.Center
-                    )
-                }
-
-                is LoadErr -> item {
-                    Text(
-                        text = lyricStatus.msg,
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Normal,
-                        color = Color(0xFFEF5350),
-                        letterSpacing = 0.5.sp,
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp).clickable(
-                            indication = null,
-                            interactionSource = remember { MutableInteractionSource() }
-                        ) { onRetry() },
-                        textAlign = TextAlign.Center
-                    )
-                }
-
-                NotFound, null -> item {
-                    Text(
-                        text = "暂无歌词",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Light, // 选用轻盈的字体粗细
-                        color = Color.Gray.copy(alpha = 0.5f),
-                        letterSpacing = 2.sp, // 拉开字间距，营造空灵、安静的氛围
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp),
-                        textAlign = TextAlign.Center
-                    )
+                items(3) {
+                    Spacer(modifier = Modifier.height(30.dp))
                 }
             }
 
+            Init -> item {
+                Text(
+                    "欢迎使用乐动盒",
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color.Black.copy(alpha = 0.7f),
+                    letterSpacing = 1.sp,
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp),
+                    textAlign = TextAlign.Center
+                )
+            }
+
+            Loading -> item {
+                Text(
+                    text = "歌词加载中...",
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color.Black.copy(alpha = 0.7f),
+                    letterSpacing = 1.sp,
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp),
+                    textAlign = TextAlign.Center
+                )
+            }
+
+            is LoadErr -> item {
+                Text(
+                    text = lyricStatus.msg,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Normal,
+                    color = Color(0xFFEF5350),
+                    letterSpacing = 0.5.sp,
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp).clickable(
+                        indication = null,
+                        interactionSource = remember { MutableInteractionSource() }
+                    ) { onRetry() },
+                    textAlign = TextAlign.Center
+                )
+            }
+
+            NotFound, null -> item {
+                Text(
+                    text = "暂无歌词",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Light, // 选用轻盈的字体粗细
+                    color = Color.Gray.copy(alpha = 0.5f),
+                    letterSpacing = 2.sp, // 拉开字间距，营造空灵、安静的氛围
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp),
+                    textAlign = TextAlign.Center
+                )
+            }
         }
+
     }
 }
 
@@ -200,7 +196,7 @@ fun CurrentLyric(
                     width = 8f
                 )
             ),
-            color  = MaterialTheme.colorScheme.primary,
+            color = MaterialTheme.colorScheme.primary,
         )
         // 正常文字层 (细描边)
         Text(
@@ -208,7 +204,7 @@ fun CurrentLyric(
             fontSize = 25.sp,
             lineHeight = 30.sp,
             textAlign = TextAlign.Center,
-            color  = MaterialTheme.colorScheme.surface,
+            color = MaterialTheme.colorScheme.surface,
             style = TextStyle(
                 drawStyle = Stroke(
                     width = 2f

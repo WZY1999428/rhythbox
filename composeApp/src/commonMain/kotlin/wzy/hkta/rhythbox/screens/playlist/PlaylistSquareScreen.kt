@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.absoluteOffset
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -31,9 +30,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -42,7 +38,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import cafe.adriel.voyager.core.model.rememberScreenModel
@@ -55,10 +50,10 @@ import rhythbox.composeapp.generated.resources.Res
 import rhythbox.composeapp.generated.resources.music
 import wzy.hkta.rhythbox.components.BottomControl
 import wzy.hkta.rhythbox.components.NavBar
-import wzy.hkta.rhythbox.screens.search.netSearch.NetSearchScreen
+import wzy.hkta.rhythbox.screens.search.netSearch.OnlineSearchScreen
 import wzy.hkta.rhythbox.utils.Rhythbox
-import wzy.hkta.rhythbox.utils.fatchMusic.Playlist
-import wzy.hkta.rhythbox.utils.fatchMusic.PlaylistBanner
+import wzy.hkta.rhythbox.fatchMusic.Playlist
+import wzy.hkta.rhythbox.fatchMusic.PlaylistBanner
 import wzy.hkta.rhythbox.utils.formatPlayTotal
 
 /**
@@ -76,13 +71,13 @@ class PlaylistSquareScreen : Screen {
         PlaylistSquareContent(
             vm,
             onSearchClick = {
-                navigator.push(NetSearchScreen())
+                navigator.push(OnlineSearchScreen())
             },
             onPlayPlaylist = { title, id ->
-                navigator.push(NetPlaylistSongScreen(title, id))
+                navigator.push(OnlinePlaylistSongScreen(title, id))
             },
             onPlaylistClick = { title, id ->
-                navigator.push(NetPlaylistSongScreen(title, id))
+                navigator.push(OnlinePlaylistSongScreen(title, id))
             }
         )
     }
@@ -96,7 +91,7 @@ fun PlaylistSquareContent(
     onPlaylistClick: ((title: String, id: Long) -> Unit)? = null,
     onPlayPlaylist: ((title: String, id: Long) -> Unit)? = null
 ) {
-    val playUuid by Rhythbox.player.playUuid.collectAsState()
+    val playMediaId by Rhythbox.player.playMediaId.collectAsState()
     val playlist by vm.recommendPlaylist.collectAsState()
     val playlistTabs by vm.playlistTabs.collectAsState()
     val playlistType by vm.playlistType.collectAsState()
@@ -295,7 +290,7 @@ fun PlaylistSquareContent(
             }
         }
 
-        if (playUuid != null) {
+        if (playMediaId != null) {
             BottomControl()
         }
     }

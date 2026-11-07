@@ -25,17 +25,19 @@ object StorageManager {
 
     // 取的时候，编译器知道你想转成什么对象，从而让 Json.decodeFromString<T> 能够正常工作
     inline fun <reified T> getItem(key: String): T? {
+        if (!settings.hasKey(key)) return null
+
         return when (T::class) {
-            // 1. 处理原生支持的基础类型
             String::class -> settings.getString(key, "") as T
             Int::class -> settings.getInt(key, 0) as T
             Boolean::class -> settings.getBoolean(key, false) as T
             Float::class -> settings.getFloat(key, 0f) as T
             Long::class -> settings.getLong(key, 0L) as T
-            // 2. 处理需要反序列化的复杂对象
+
             else -> {
                 val jsonString = settings.getString(key, "")
                 if (jsonString.isEmpty()) return null
+
                 try {
                     Json.decodeFromString<T>(jsonString)
                 } catch (e: Exception) {

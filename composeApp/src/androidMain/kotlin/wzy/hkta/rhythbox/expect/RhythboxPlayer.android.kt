@@ -4,10 +4,9 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.media.RingtoneManager
-import android.os.Build
 import android.provider.Settings
 import android.widget.Toast
-import androidx.annotation.RequiresApi
+import androidx.compose.runtime.mutableStateListOf
 import androidx.core.net.toUri
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
@@ -22,27 +21,28 @@ import com.google.common.util.concurrent.MoreExecutors
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import wzy.hkta.rhythbox.database.AppDatabase
+import wzy.hkta.rhythbox.database.LyricEntity
 import wzy.hkta.rhythbox.database.SongCache
 import wzy.hkta.rhythbox.database.SongEntity
 import wzy.hkta.rhythbox.services.PlaybackService
 import wzy.hkta.rhythbox.utils.LyricInfo
 import wzy.hkta.rhythbox.utils.netEaseCloudMusic.NetEaseCloudMusic
-import wzy.hkta.rhythbox.utils.SnackbarManager
+import wzy.hkta.rhythbox.utils.ToastManager
 import wzy.hkta.rhythbox.utils.SongListType
 import wzy.hkta.rhythbox.utils.SongType
 import wzy.hkta.rhythbox.utils.StorageManager
-import wzy.hkta.rhythbox.utils.fatchMusic.FetchMusic
-import wzy.hkta.rhythbox.utils.fatchMusic.LyricData
-import wzy.hkta.rhythbox.utils.fatchMusic.Song
+import wzy.hkta.rhythbox.fatchMusic.FetchMusic
+import wzy.hkta.rhythbox.fatchMusic.LyricData
+import wzy.hkta.rhythbox.fatchMusic.Song
 import wzy.hkta.rhythbox.utils.generateMediaId
 import wzy.hkta.rhythbox.utils.parseLyric
+import kotlin.String
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.random.Random
 import kotlin.time.Duration.Companion.milliseconds
@@ -50,9 +50,11 @@ import kotlin.time.Duration.Companion.milliseconds
 actual class RhythboxPlayer(private val context: Context, val database: AppDatabase) {
     private var exoPlayerSession: MediaController? = null
     private var job: Job? = null
-    private val songDao = database.getSongDao()
     private var isInitRestorePlaylist = false
-    private val _mediaItems = MutableStateFlow<SongListType>(SongListType.LocalList(emptyList()))
+    private val songDao = database.getSongDao()
+    private val _mediaItems = MutableStateFlow<SongListType>(
+        SongListType.LocalList(mutableStateListOf())
+    )
     private var _mediaItems2 = listOf<MediaItem>()
     private var errorToast: Toast? = null
     private val _playMode = MutableStateFlow(PlayMode.LIST_LOOP)
@@ -60,14 +62,13 @@ actual class RhythboxPlayer(private val context: Context, val database: AppDatab
     private val _currentSong = MutableStateFlow<SongType?>(null)
     private val _lyricStatus = MutableStateFlow<LyricStatus>(LyricStatus.Init)
     private val _lyricList = MutableStateFlow<List<LyricData>>(emptyList())
-
     private val _currentPosition = MutableStateFlow<Long>(0)
     private val _isPlaying = MutableStateFlow(false)
     private val _duration = MutableStateFlow<Long>(0)
     private val _progress = MutableStateFlow(0f)
     private val _playIndex = MutableStateFlow(-1)
     private var _playKey = MutableStateFlow<String?>(null)
-    private val _playUuid = MutableStateFlow<String?>(null)
+    private val _playMediaId = MutableStateFlow<String?>(null)
     actual val lyricList = _lyricList.asStateFlow()
     actual val playerLoading = _playerLoading.asStateFlow()
     actual val isPlaying = _isPlaying.asStateFlow()
@@ -78,7 +79,7 @@ actual class RhythboxPlayer(private val context: Context, val database: AppDatab
     actual val progress = _progress.asStateFlow()
     actual val playMode = _playMode.asStateFlow()
     actual val playKey = _playKey.asStateFlow()
-    actual val playUuid = _playUuid.asStateFlow()
+    actual val playMediaId = _playMediaId.asStateFlow()
 
 
     actual val currentSong = _currentSong.asStateFlow()
@@ -87,14 +88,16 @@ actual class RhythboxPlayer(private val context: Context, val database: AppDatab
     init {
         CoroutineScope(Dispatchers.Main).launch {
             while (true) {
-                _duration.value = exoPlayerSession?.duration ?: 0
-                _currentPosition.value = exoPlayerSession?.currentPosition ?: 0
-                val p = _currentPosition.value.toFloat() / _duration.value.toFloat()
-                _progress.value = if (p.isNaN()) 0f else p
-                if (isPlaying.value) StorageManager.setItem(
-                    "currentPosition",
-                    _currentPosition.value
-                )
+                if (isInitRestorePlaylist) {
+                    _duration.value = exoPlayerSession?.duration ?: 0
+                    _currentPosition.value = exoPlayerSession?.currentPosition ?: 0
+                    val p = _currentPosition.value.toFloat() / _duration.value.toFloat()
+                    _progress.value = if (p.isNaN()) 0f else p
+                    if (isPlaying.value) {
+                        StorageManager.setItem("currentPosition", _currentPosition.value)
+                    }
+                }
+
                 delay(250.milliseconds)
             }
         }
@@ -118,6 +121,7 @@ actual class RhythboxPlayer(private val context: Context, val database: AppDatab
                 }
 
                 override fun onPlayerError(error: PlaybackException) {
+
                     super.onPlayerError(error)
                     errorToast?.cancel()
                     errorToast =
@@ -140,7 +144,6 @@ actual class RhythboxPlayer(private val context: Context, val database: AppDatab
                         Player.MEDIA_ITEM_TRANSITION_REASON_SEEK, Player.MEDIA_ITEM_TRANSITION_REASON_AUTO -> {
                             // 直接从播放器获取当前准确的媒体项索引，避免用 indexOf 查错
                             val index = exoPlayerSession?.currentMediaItemIndex ?: return
-                            println("indexindexindexindex $index")
                             if (index >= 0) {
                                 _playIndex.value = index
                                 setNextInfo(index)
@@ -168,31 +171,26 @@ actual class RhythboxPlayer(private val context: Context, val database: AppDatab
             is SongListType.LocalList -> {
                 med.songList.getOrNull(index)?.let { song ->
                     _currentSong.value = SongType.Local(song)
-                    _playUuid.value = song.uuid
+                    _playMediaId.value = song.mediaId
                 }
             }
 
             is SongListType.NetworkList -> {
                 med.songList.getOrNull(index)?.let { song ->
                     _currentSong.value = SongType.Network(song)
-                    _playUuid.value = song.uuid
+                    _playMediaId.value = song.mediaId
                     CoroutineScope(Dispatchers.IO).launch {
                         try {
                             val url = song.url!!
-                            val cache = songDao.getSongCacheByUrl(url)
-                            if (cache == null) {
-                                val file = downloadMusicToCache(context, url, song.uuid!!)
-                                if (file != null) {
+                            if (songDao.getSongCacheByUrl(url) == null) {
+                                downloadMusicToCache(context, url, song.mediaId!!)?.let { file ->
                                     songDao.insertSongCache(SongCache(url, file.path))
-
                                     withContext(Dispatchers.Main) {
                                         // 1. 确保播放器依然活着，且当前正在播放网络歌曲
                                         val player = exoPlayerSession ?: return@withContext
                                         val currentIndex = player.currentMediaItemIndex
                                         if (currentIndex == -1) return@withContext
-
                                         val oldMediaItem = player.getMediaItemAt(currentIndex)
-
                                         // 2. 双重校验：确保当前播放的 mediaId 或 uri 确实就是这首歌的 url
                                         // 防止用户在下载期间切歌了，结果把新切的歌给替换/重置了
                                         if (oldMediaItem.mediaId == url || oldMediaItem.localConfiguration?.uri.toString() == url) {
@@ -222,106 +220,152 @@ actual class RhythboxPlayer(private val context: Context, val database: AppDatab
         key: String,
         songItems: SongListType,
         refresh: Boolean?,
-        startIndex: Int?
+        startIndex: Int?,
     ) {
         when (songItems) {
             is SongListType.LocalList -> {
                 val songList = songItems.songList
-                if (_playKey.value == key && songList.size == (mediaItems.value as? SongListType.LocalList)?.songList?.size && refresh != true) return
-                exoPlayerSession?.clearMediaItems()
+                if (_playKey.value == key && songList.size == mediaItemsLength() && refresh != true) return
                 _mediaItems2 = songList.map { buildMediaItems(it) }
                 exoPlayerSession?.setMediaItems(_mediaItems2, true)
-                _mediaItems.value = SongListType.LocalList(songList)
-                StorageManager.setItem("mediaItems", songList.map { it.id })
-                StorageManager.setItem<String>("playKey", key)
             }
 
             is SongListType.NetworkList -> {
                 val songList = songItems.songList
-                if (_playKey.value == key && songList.size == ((mediaItems.value as? SongListType.NetworkList)?.songList?.size) && refresh != true) return
-                exoPlayerSession?.clearMediaItems()
-                // 2. 存储与序列化操作（在 IO 线程执行，没问题）
-                StorageManager.setItem("mediaItems", songList.map { it.id })
-                StorageManager.setItem<String>("playKey", key)
-                _mediaItems.value = SongListType.NetworkList(songList)
+                if (_playKey.value == key && songList.size == mediaItemsLength() && refresh != true) return
                 CoroutineScope(Dispatchers.IO).launch {
                     val cacheList = songDao.getSongCache()
                     val newMediaItems = songList.map { buildNetMediaItems(it, cacheList) }
                     withContext(Dispatchers.Main) {
-
-                        println("startIndexstartIndexstartIndexstartIndex $startIndex")
-
                         exoPlayerSession?.setMediaItems(newMediaItems, startIndex ?: 0, 0L)
                         prepare(startIndex ?: 0)
                     }
                 }
             }
         }
-
         _playKey.value = key
+        _mediaItems.value = songItems
+        saveMediaItems()
+    }
 
+
+    actual fun sortMediaItems(songItems: SongListType) {
+        val player = exoPlayerSession ?: return
+        val count = player.mediaItemCount
+
+        if (count <= 0) return
+
+        // 获取排序后的歌曲 ID
+        val sortedIds = when (songItems) {
+            is SongListType.LocalList ->
+                songItems.songList.map { it.mediaId }
+
+            is SongListType.NetworkList ->
+                songItems.songList.map { it.mediaId }
+        }
+
+        // 获取播放器当前队列 ID
+        val currentIds = MutableList(count) { index ->
+            player.getMediaItemAt(index).mediaId
+        }
+
+        // 根据目标顺序移动队列
+        sortedIds.forEachIndexed { targetIndex, id ->
+            val currentIndex = currentIds.indexOf(id)
+
+            if (currentIndex >= 0 && currentIndex != targetIndex) {
+                player.moveMediaItem(currentIndex, targetIndex)
+
+                val item = currentIds.removeAt(currentIndex)
+                currentIds.add(targetIndex, item)
+            }
+        }
+        // 同步应用内歌曲列表
+        _mediaItems.value = songItems
     }
 
     actual fun updateMediaItem(song: SongType) {
-        _mediaItems.value = when (val current = _mediaItems.value) {
+        when (val current = _mediaItems.value) {
             is SongListType.LocalList -> {
                 if (song is SongType.Local) {
-                    current.copy(
-                        songList = current.songList.map {
-                            if (it.id == song.song.id) song.song else it
-                        }
-                    )
-                } else current
+                    val list = current.songList
+                    val index = list.indexOfFirst { it.id == song.song.id }
+                    if (index >= 0) {
+                        list[index] = song.song
+                    }
+                }
             }
 
             is SongListType.NetworkList -> {
                 if (song is SongType.Network) {
-                    current.copy(
-                        songList = current.songList.map {
-                            if (it.id == song.song.id) song.song else it
-                        }
-                    )
-                } else current
-            }
-
-        }
-
-        when (val current = _mediaItems.value) {
-            is SongListType.LocalList ->
-                StorageManager.setItem("mediaItems", current.songList.map { it.id })
-
-            is SongListType.NetworkList ->
-                StorageManager.setItem("mediaItems", current.songList.map { it.id })
-        }
-    }
-
-    actual fun restorePlaylist() {
-        val ids = StorageManager.getItem<List<Long>>("mediaItems")
-        val key = StorageManager.getItem<String>("playKey")
-        val playerInfo = StorageManager.getItem<PlayerInfo>("PlayerInfo")
-        val currentPosition = StorageManager.getItem<Long>("currentPosition") ?: 0L
-        CoroutineScope(Dispatchers.IO).launch {
-            if (!ids.isNullOrEmpty() && key != null) {
-                val data = database.getSongDao().getByIds(ids)
-                // 2. 内存里的数据组装，这里用 map 重新生成 UUID 列表
-                val newData = data.map { it.copy(uuid = generateMediaId(key, it)) }
-                // 3. 🚨 关键：捞完数据了，立刻切回主线程去调播放器和更新 UI 状态！
-                withContext(Dispatchers.Main) {
-                    // 现在的环境是 Main 线程了，ExoPlayer
-                    resetMediaItems(key, SongListType.LocalList(newData), true)
-                    if (playerInfo != null) {
-                        _duration.value = playerInfo.duration
-                        _playIndex.value = playerInfo.playIndex
-                        _playUuid.value = playerInfo.playUuid
-                        _playMode.value = playerInfo.playMode
-                        prepare(_playIndex.value)
-                        _currentPosition.value = currentPosition
-                        setPlayerRepeatMode()
-                        getSongLyric()
+                    val list = current.songList
+                    val index = list.indexOfFirst { it.id == song.song.id }
+                    if (index >= 0) {
+                        list[index] = song.song
                     }
                 }
             }
         }
+        _currentSong.value = song
+        saveMediaItems()
+    }
+
+    private fun saveMediaItems() {
+        when (val current = mediaItems.value) {
+            is SongListType.LocalList ->
+                StorageManager.setItem("mediaItems", current.songList.map { it.id })
+
+            is SongListType.NetworkList ->
+                StorageManager.setItem<List<Song>>("mediaItems", current.songList)
+        }
+    }
+
+    actual fun restorePlaylist() {
+        val key = StorageManager.getItem<String>("playKey")
+        val playerInfo = StorageManager.getItem<PlayerInfo>("PlayerInfo")
+        CoroutineScope(Dispatchers.IO).launch {
+            if (playerInfo != null) {
+                if (playerInfo.playSongType == "Local") {
+                    val ids = StorageManager.getItem<List<Long>>("mediaItems")
+                    if (!ids.isNullOrEmpty() && key != null) {
+                        val data = songDao.getByIds(ids)
+                        val newData = data.map { it.copy(mediaId = generateMediaId(key, it)) }
+                        withContext(Dispatchers.Main) {
+                            val items = SongListType.LocalList(newData.toMutableList());
+                            resetMediaItems(key, items, true)
+                            initPlayInfo(playerInfo)
+                        }
+                    }
+                } else {
+                    val newData = StorageManager.getItem<List<Song>>("mediaItems")
+                    if (newData != null && key != null) {
+                        withContext(Dispatchers.Main) {
+                            val items = SongListType.NetworkList(newData.toMutableList());
+                            resetMediaItems(key, items, true)
+                            initPlayInfo(playerInfo)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private fun initPlayInfo(playerInfo: PlayerInfo) {
+        val currentPosition = StorageManager.getItem<Long>("currentPosition") ?: 0L
+        _duration.value = playerInfo.duration
+        _playIndex.value = playerInfo.playIndex
+        _playMediaId.value = playerInfo.playMediaId
+        _currentPosition.value = currentPosition
+        setPlayerRepeatMode()
+        exoPlayerSession?.prepare()
+        _playMode.value = playerInfo.playMode
+        exoPlayerSession?.seekTo(currentPosition)
+        val mediaItems = _mediaItems.value
+        _currentSong.value = when (playerInfo.playSongType) {
+            "Local" -> SongType.Local((mediaItems as SongListType.LocalList).songList[playIndex.value])
+            else -> SongType.Network((mediaItems as SongListType.NetworkList).songList[playIndex.value])
+        }
+        getSongLyric()
     }
 
     actual fun addSong(song: SongType) {
@@ -330,9 +374,7 @@ actual class RhythboxPlayer(private val context: Context, val database: AppDatab
                 if (song is SongType.Local) {
                     val songList = current.songList
                     if (songList.none { it.id == song.song.id }) {
-                        _mediaItems.value = current.copy(
-                            songList = songList + song.song
-                        )
+                        current.songList.add(song.song)
                     }
                 }
             }
@@ -341,9 +383,7 @@ actual class RhythboxPlayer(private val context: Context, val database: AppDatab
                 if (song is SongType.Network) {
                     val songList = current.songList
                     if (songList.none { it.id == song.song.id }) {
-                        _mediaItems.value = current.copy(
-                            songList = songList + song.song
-                        )
+                        current.songList.add(song.song)
                     }
                 }
             }
@@ -386,22 +426,17 @@ actual class RhythboxPlayer(private val context: Context, val database: AppDatab
 
         exoPlayerSession?.removeMediaItem(index)
 
-        _mediaItems.value = when (current) {
-            is SongListType.LocalList -> current.copy(
-                songList = current.songList.filter { it.id != songId }
-            )
+        when (current) {
+            is SongListType.LocalList -> {
+                current.songList = (current.songList.filter { it.id != songId }).toMutableList()
+            }
 
-            is SongListType.NetworkList -> current.copy(
-                songList = current.songList.filter { it.id != songId }
-            )
+            is SongListType.NetworkList -> {
+                current.songList = (current.songList.filter { it.id != songId }).toMutableList()
+            }
         }
 
-        val ids = when (val updated = _mediaItems.value) {
-            is SongListType.LocalList -> updated.songList.map { it.id }
-            is SongListType.NetworkList -> updated.songList.map { it.id }
-        }
-
-        StorageManager.setItem("mediaItems", ids)
+        saveMediaItems()
 
         if (isCurrent && isPlaying.value) {
             next()
@@ -423,18 +458,28 @@ actual class RhythboxPlayer(private val context: Context, val database: AppDatab
                         }
 
                         is SongType.Network -> {
-                            val lyric = FetchMusic.getSongLyric(it.song.id)
-                            _lyricList.value = lyric
-                            if (lyric.isNotEmpty()) {
-                                _lyricStatus.value = LyricStatus.Finished(
-                                    LyricInfo(
-                                        parseLyric(lyric[0].content)!!,
-                                        null,
-                                        0
-                                    )
+                            val lyricData = songDao.getLyric("online-${it.song.id}")
+                            var lyricInfo: LyricInfo? = null
+                            if (lyricData != null) {
+                                lyricInfo = LyricInfo(
+                                    parseLyric(lyricData.lyric)!!,
+                                    null,
+                                    lyricData.offset
                                 )
+                            }
+                            val lyric = FetchMusic.music.getSongLyric(it.song.id)
+                            _lyricList.value = lyric
+                            if (lyric.isNotEmpty() && lyricData == null) {
+                                val content = lyric[0].content
+                                lyricInfo = LyricInfo(parseLyric(content)!!, null, 0)
+                                val lyricEntity =
+                                    LyricEntity(songId = "online-${it.song.id}", lyric = content);
+                                songDao.insertLyric(lyricEntity)
                             } else {
                                 _lyricStatus.value = LyricStatus.NotFound
+                            }
+                            if (lyricInfo != null) {
+                                _lyricStatus.value = LyricStatus.Finished(lyricInfo)
                             }
                         }
                     }
@@ -472,34 +517,28 @@ actual class RhythboxPlayer(private val context: Context, val database: AppDatab
     }
 
     actual fun onChangePlayMode() {
-        val player = exoPlayerSession ?: return
-        player.shuffleModeEnabled = false
         _playMode.value = when (playMode.value) {
             PlayMode.LIST_LOOP -> {
-                SnackbarManager.show("单曲循环")
-                player.repeatMode = REPEAT_MODE_ONE
+                ToastManager.show("单曲循环")
                 PlayMode.SINGLE_LOOP
             }
 
             PlayMode.SINGLE_LOOP -> {
-                SnackbarManager.show("列表播放")
-                player.repeatMode = REPEAT_MODE_OFF
+                ToastManager.show("列表播放")
                 PlayMode.LIST
             }
 
             PlayMode.LIST -> {
-                SnackbarManager.show("随机播放")
-                player.shuffleModeEnabled = true
-                player.repeatMode = REPEAT_MODE_ALL
+                ToastManager.show("随机播放")
                 PlayMode.SHUFFLE
             }
 
             PlayMode.SHUFFLE -> {
-                SnackbarManager.show("列表循环")
-                player.repeatMode = REPEAT_MODE_ALL
+                ToastManager.show("列表循环")
                 PlayMode.LIST_LOOP
             }
         }
+        setPlayerRepeatMode()
         savePlayerInfo()
     }
 
@@ -510,14 +549,14 @@ actual class RhythboxPlayer(private val context: Context, val database: AppDatab
             is SongListType.LocalList -> {
                 cur.songList.getOrNull(mediaItemIndex)?.let {
                     _currentSong.value = SongType.Local(it)
-                    _playUuid.value = it.uuid
+                    _playMediaId.value = it.mediaId
                 }
             }
 
             is SongListType.NetworkList -> {
                 cur.songList.getOrNull(mediaItemIndex)?.let {
                     _currentSong.value = SongType.Network(it)
-                    _playUuid.value = it.uuid
+                    _playMediaId.value = it.mediaId
                 }
             }
 
@@ -529,7 +568,7 @@ actual class RhythboxPlayer(private val context: Context, val database: AppDatab
 
     private fun buildMediaItems(it: SongEntity): MediaItem {
         return MediaItem.Builder()
-            .setMediaId(it.path)
+            .setMediaId(it.mediaId!!)
             .setUri(it.path)
             .setMediaMetadata(
                 MediaMetadata.Builder()
@@ -549,8 +588,9 @@ actual class RhythboxPlayer(private val context: Context, val database: AppDatab
             else -> cache.filePath
         }
 
+
         return MediaItem.Builder()
-            .setMediaId(url)
+            .setMediaId(song.mediaId!!)
             .setUri(url)
             .setMediaMetadata(
                 MediaMetadata.Builder()
@@ -563,12 +603,17 @@ actual class RhythboxPlayer(private val context: Context, val database: AppDatab
     }
 
     fun savePlayerInfo() {
+        playKey.value?.let { key -> StorageManager.setItem("playKey", key) }
         StorageManager.setItem(
             "PlayerInfo", PlayerInfo(
                 playMode = _playMode.value,
                 duration = _duration.value,
                 playIndex = _playIndex.value,
-                playUuid = _playUuid.value
+                playMediaId = _playMediaId.value,
+                playSongType = when (currentSong.value) {
+                    is SongType.Local, null -> "Local"
+                    is SongType.Network -> "Network"
+                }
             )
         )
     }

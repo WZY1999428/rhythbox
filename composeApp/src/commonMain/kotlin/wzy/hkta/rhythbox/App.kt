@@ -28,7 +28,7 @@ import androidx.compose.ui.zIndex
 import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.transitions.SlideTransition
 import com.linroid.ketch.core.Ketch
-import com.linroid.ketch.engine.KtorHttpEngine
+import wzy.hkta.rhythbox.components.Toast
 import wzy.hkta.rhythbox.database.AppDatabase
 import wzy.hkta.rhythbox.expect.FloatLyric
 import wzy.hkta.rhythbox.expect.RhythboxPlayer
@@ -38,7 +38,8 @@ import wzy.hkta.rhythbox.theme.*
 import wzy.hkta.rhythbox.utils.DownloadEngine
 import wzy.hkta.rhythbox.utils.Rhythbox
 import wzy.hkta.rhythbox.utils.SettingManager
-import wzy.hkta.rhythbox.utils.SnackbarManager
+import wzy.hkta.rhythbox.utils.ToastManager
+import wzy.hkta.rhythbox.utils.UserManager
 
 
 // 🍑 【微醺蜜桃】 沉浸深色调性皮肤
@@ -62,23 +63,20 @@ private val SavannaBreezeScheme = lightColorScheme(
 @Composable
 fun App(
     rhythboxPlayer: RhythboxPlayer,
-    database: AppDatabase,
-    scanMusic: ScanMusic,
-    floatLyric: FloatLyric,
-    downloadEngine: Ketch
 ) {
     val show = remember { mutableStateOf(false) }
     val currentSong = rhythboxPlayer.currentSong.collectAsState()
-    val snackbarHostState = remember { SnackbarHostState() }
+    val playMediaId = rhythboxPlayer.playMediaId.collectAsState()
+
+    val toastState = remember { SnackbarHostState() }
     val isSystemInDarkTheme = SettingManager.isSystemInDarkTheme.collectAsState()
 
     LaunchedEffect(Unit) {
-        SnackbarManager.bind(snackbarHostState)
-        Rhythbox.init(rhythboxPlayer, database, scanMusic, floatLyric)
-        DownloadEngine.initEngine(downloadEngine)
+        ToastManager.bind(toastState)
+        UserManager.getUserInfo()
         show.value = true
     }
-    LaunchedEffect(currentSong.value, show.value) {
+    LaunchedEffect(playMediaId.value, show.value) {
         if (!show.value) return@LaunchedEffect
         currentSong.value?.let {
             rhythboxPlayer.getSongLyric()
@@ -102,25 +100,10 @@ fun App(
                     Navigator(HomeScreen()) { navigator ->
                         SlideTransition(navigator)
                     }
-                    SnackbarHost(
-                        hostState = snackbarHostState,
-                        modifier = Modifier.align(Alignment.Center).zIndex(9999999f)
-                    ) { data ->
-                        Box(
-                            modifier = Modifier
-                                .background(Color.Black.copy(0.6f), RoundedCornerShape(8.dp))
-                                .widthIn(min = 100.dp, max = 200.dp)
-                                .padding(horizontal = 10.dp, vertical = 8.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = data.visuals.message,
-                                color = Color.White,
-                                textAlign = TextAlign.Center,
-                                fontSize = 14.sp
-                            )
-                        }
-                    }
+                    Toast(
+                        hostState = toastState,
+                        modifier = Modifier.align(Alignment.Center)
+                    )
                 }
                 Spacer(modifier = Modifier.windowInsetsPadding(WindowInsets.navigationBars))
             }

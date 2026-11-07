@@ -9,15 +9,14 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import cafe.adriel.voyager.navigator.Navigator
-import wzy.hkta.rhythbox.screens.album.NetAlbumSongScreen
-import wzy.hkta.rhythbox.screens.artist.NetArtistSongScreen
-import wzy.hkta.rhythbox.screens.search.netSearch.LoadMore
-import wzy.hkta.rhythbox.screens.search.netSearch.NetSearchViewModel
-import wzy.hkta.rhythbox.screens.search.netSearch.SearchAlbumItem
+import wzy.hkta.rhythbox.screens.album.OnlineAlbumSongScreen
+import wzy.hkta.rhythbox.components.LoadMore
+import wzy.hkta.rhythbox.screens.search.netSearch.OnlineSearchViewModel
+import wzy.hkta.rhythbox.screens.search.netSearch.AlbumItem
 import wzy.hkta.rhythbox.screens.search.netSearch.SearchType
 
 @Composable
-fun AlbumList(vm: NetSearchViewModel, navigator: Navigator) {
+fun AlbumList(vm: OnlineSearchViewModel, navigator: Navigator) {
 
     val state by vm.albumList.collectAsState()
     val keyword by vm.keyword.collectAsState()
@@ -27,13 +26,13 @@ fun AlbumList(vm: NetSearchViewModel, navigator: Navigator) {
 
     LazyColumn(modifier = Modifier.fillMaxSize()) {
         items(state.list) {
-            SearchAlbumItem(
+            AlbumItem(
                 title = it.title,
                 artist = it.artists.joinToString("/") { ar -> ar.artistName },
                 year = it.releaseDate,
                 coverUrl = it.cover,
                 onClick = {
-                    navigator.push(NetAlbumSongScreen(it.id, it.title))
+                    navigator.push(OnlineAlbumSongScreen(it.id, it.title))
                 }
             )
         }

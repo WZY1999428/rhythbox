@@ -42,7 +42,7 @@ import rhythbox.composeapp.generated.resources.right
 import rhythbox.composeapp.generated.resources.scanning
 import wzy.hkta.rhythbox.components.BottomControl
 import wzy.hkta.rhythbox.components.NavBar
-import wzy.hkta.rhythbox.components.RhythboxSongEmptyState
+import wzy.hkta.rhythbox.components.song.RhythboxSongEmptyState
 import wzy.hkta.rhythbox.cssToColor
 import wzy.hkta.rhythbox.screens.playlist.PlaylistType
 import wzy.hkta.rhythbox.screens.ScanMusicScreen

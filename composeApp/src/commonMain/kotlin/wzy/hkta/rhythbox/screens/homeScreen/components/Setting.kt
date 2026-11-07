@@ -43,7 +43,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
@@ -70,6 +69,7 @@ import wzy.hkta.rhythbox.screens.user.UserProfileScreen
 import wzy.hkta.rhythbox.utils.Rhythbox
 import wzy.hkta.rhythbox.utils.SettingManager
 import wzy.hkta.rhythbox.utils.UserManager
+import wzy.hkta.rhythbox.fatchMusic.MUSIC_BASE_URL
 import kotlin.Boolean
 
 @Composable
@@ -98,11 +98,6 @@ fun Setting(modifier: Modifier = Modifier, onClose: () -> Unit) {
                 .windowInsetsPadding(WindowInsets.statusBars)
                 .verticalScroll(rememberScrollState())
         ) {
-//            Text(
-//                "设置",
-//                textAlign = TextAlign.Center,
-//                modifier = Modifier.fillMaxWidth().height(45.dp)
-//            )
 
             UserCard(navigator)
             Column(
@@ -281,9 +276,10 @@ private fun UserCard(navigator: Navigator) {
     ) {
 
         if (user?.avatar != null) {
+            println("user.avatar: $MUSIC_BASE_URL${user?.avatar}")
             // 用户头像
             AsyncImage(
-                model = user?.avatar,
+                model = "$MUSIC_BASE_URL${user?.avatar}",
                 contentDescription = null,
                 modifier = Modifier
                     .size(54.dp)

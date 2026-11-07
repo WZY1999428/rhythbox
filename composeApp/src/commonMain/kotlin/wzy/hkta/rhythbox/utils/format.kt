@@ -9,14 +9,26 @@ import wzy.hkta.rhythbox.database.SongEntity
 import java.security.MessageDigest
 import kotlinx.datetime.number
 import kotlinx.datetime.toLocalDateTime
-import wzy.hkta.rhythbox.database.SortTypes
-import wzy.hkta.rhythbox.utils.fatchMusic.Song
+import wzy.hkta.rhythbox.fatchMusic.Song
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Instant
 
 fun formatDate(time: Long): String {
     try {
         val instant = Instant.fromEpochMilliseconds(time)
+        val dt = instant.toLocalDateTime(TimeZone.currentSystemDefault())
+        return "${dt.year}-${dt.month.number.toString().padStart(2, '0')}-${
+            dt.day.toString().padStart(2, '0')
+        }"
+    } catch (e: Exception) {
+        return ""
+    }
+}
+
+
+fun formatDate(date: String): String {
+    try {
+        val instant = Instant.parse(date)
         val dt = instant.toLocalDateTime(TimeZone.currentSystemDefault())
         return "${dt.year}-${dt.month.number.toString().padStart(2, '0')}-${
             dt.day.toString().padStart(2, '0')
@@ -37,6 +49,9 @@ fun formatDuration(duration: Long): String {
         "%02d:%02d".format(mm, ss)
     }
 }
+
+
+
 
 fun String.md5(): String {
     // 1. 拿到 MD5 实例
@@ -63,19 +78,6 @@ fun Modifier.marqueeText(): Modifier {
         initialDelayMillis = 1000, // 🚀 第一次加载完，停顿1秒开始动
         velocity = 40.dp           // 🏃‍♂️ 滚动的速度（每秒滚动多少 dp）
     )
-}
-
-
-fun getSortType(savedType: String?): String {
-    return when (savedType) {
-        SortTypes.BY_NAME -> "name ASC"
-        SortTypes.BY_NAME_DESC -> "name DESC"
-        SortTypes.BY_TIME -> "createTime ASC"
-        SortTypes.BY_TIME_DESC -> "createTime DESC"
-        SortTypes.BY_ARTIST -> "artist ASC"
-        SortTypes.BY_ARTIST_DESC -> "artist DESC"
-        else -> "name ASC"
-    }
 }
 
 suspend fun <T> retry(
@@ -114,3 +116,6 @@ fun formatPlayTotal(total: Long): String {
         "$integer.$decimal$unit"
     }
 }
+
+
+

@@ -2,12 +2,9 @@ package wzy.hkta.rhythbox.expect
 
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.serialization.Serializable
-import wzy.hkta.rhythbox.database.SongEntity
 import wzy.hkta.rhythbox.utils.SongListType
 import wzy.hkta.rhythbox.utils.SongType
-import wzy.hkta.rhythbox.utils.fatchMusic.ListData
-import wzy.hkta.rhythbox.utils.fatchMusic.LyricData
-import wzy.hkta.rhythbox.utils.fatchMusic.Song
+import wzy.hkta.rhythbox.fatchMusic.LyricData
 
 enum class PlayMode {
     LIST,       // 顺序播放
@@ -29,7 +26,7 @@ expect class RhythboxPlayer {
     val playMode: StateFlow<PlayMode>
     val playIndex: StateFlow<Int>
     val playKey: StateFlow<String?>
-    val playUuid: StateFlow<String?>
+    val playMediaId: StateFlow<String?>
     val progress: StateFlow<Float>
     fun prepare(mediaItemIndex: Int)
     fun play()
@@ -45,12 +42,19 @@ expect class RhythboxPlayer {
     fun release()
     fun restorePlaylist()
     fun getSongLyric()
-    fun resetMediaItems(key: String, songItems: SongListType, refresh: Boolean?, startIndex: Int? = null)
+
+    fun sortMediaItems( songItems: SongListType)
+    fun resetMediaItems(
+        key: String,
+        songItems: SongListType,
+        refresh: Boolean?,
+        startIndex: Int? = null,
+    )
+
     fun updateMediaItem(song: SongType)
     fun setRhythboxRingtone()
     fun onChangePlayMode()
 }
-
 
 
 @Serializable
@@ -58,7 +62,8 @@ data class PlayerInfo(
     val playMode: PlayMode,
     val duration: Long,
     val playIndex: Int,
-    val playUuid: String?
+    val playMediaId: String?,
+    val playSongType: String
 )
 
 data class SongItem(

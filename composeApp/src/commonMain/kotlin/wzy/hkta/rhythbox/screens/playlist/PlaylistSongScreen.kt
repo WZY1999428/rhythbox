@@ -16,16 +16,19 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -62,30 +65,30 @@ import org.jetbrains.compose.resources.painterResource
 import rhythbox.composeapp.generated.resources.Res
 import rhythbox.composeapp.generated.resources.logo
 import rhythbox.composeapp.generated.resources.more
-import rhythbox.composeapp.generated.resources.play3
-import rhythbox.composeapp.generated.resources.sort1
 import wzy.hkta.rhythbox.components.BottomControl
 import wzy.hkta.rhythbox.components.MAlertDialog
 import wzy.hkta.rhythbox.components.NavBar
-import wzy.hkta.rhythbox.components.PlaylistInfoBottomSheet
-import wzy.hkta.rhythbox.components.RhythboxSongEmptyState
-import wzy.hkta.rhythbox.components.SongBottomSheet
-import wzy.hkta.rhythbox.components.SongItem
-import wzy.hkta.rhythbox.components.SortSongBottomSheet
-import wzy.hkta.rhythbox.cssToColor
+import wzy.hkta.rhythbox.components.playlist.EditPlaylist
+import wzy.hkta.rhythbox.components.playlist.PlaylistInfoBottomSheet
+import wzy.hkta.rhythbox.components.song.RhythboxSongEmptyState
+import wzy.hkta.rhythbox.components.song.SongBottomSheet
+import wzy.hkta.rhythbox.components.song.SongItem
+import wzy.hkta.rhythbox.components.song.SortSongBottomSheet
 import wzy.hkta.rhythbox.database.PlaylistEntity
+import wzy.hkta.rhythbox.database.PlaylistSortEntity
 import wzy.hkta.rhythbox.database.SongEntity
 import wzy.hkta.rhythbox.screens.ScanMusicScreen
 import wzy.hkta.rhythbox.screens.SongMetadataScreen
 import wzy.hkta.rhythbox.screens.song.SongScreen
 import wzy.hkta.rhythbox.utils.Rhythbox
 import wzy.hkta.rhythbox.utils.Rhythbox.player
-import wzy.hkta.rhythbox.utils.SnackbarManager
+import wzy.hkta.rhythbox.utils.ToastManager
 import wzy.hkta.rhythbox.utils.SongListType
 import wzy.hkta.rhythbox.utils.formatDate
 import wzy.hkta.rhythbox.utils.generateMediaId
-import wzy.hkta.rhythbox.utils.getSortType
 import wzy.hkta.rhythbox.utils.isCurrentPlaying
+import wzy.hkta.rhythbox.utils.sortSong
+import kotlin.collections.map
 import kotlin.time.Duration.Companion.milliseconds
 
 enum class PlaylistType {
@@ -109,31 +112,40 @@ class PlaylistSongScreen(
         val vm = rememberScreenModel(tag = key) {
             PlaylistSongModel(id, type, title, key, navigator)
         }
-        val playlistInfo = vm.playlistInfo.collectAsState()
+        val playlistInfo by vm.playlistInfo.collectAsState()
+        val sortEntity by vm.sortEntity.collectAsState()
         var showEditSheet by remember { mutableStateOf(false) }
         var showAlertDialog by remember { mutableStateOf(false) }
         var showSongBottomSheet by remember { mutableStateOf(false) }
+        var playlistInfoBottomSheet by remember { mutableStateOf(false) }
         var showSortSongBottomSheet by remember { mutableStateOf(false) }
         var selectSong by remember { mutableStateOf<SongEntity?>(null) }
+
         val info = vm.info.collectAsState()
         val songList = vm.songList.collectAsState()
-        val playUuid = player.playUuid.collectAsState()
+        val playMediaId = player.playMediaId.collectAsState()
         val isPlaying = player.isPlaying.collectAsState()
+
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
             val maxWidth = constraints.maxWidth.toFloat()
             val maxHeight = with(density) { constraints.maxHeight.toDp() }
+
             Box(modifier = Modifier.fillMaxSize()) {
+                // 顶部渐变背景和头部信息
                 Column(
-                    modifier = Modifier.fillMaxWidth().height(240.dp).background(
-                        Brush.linearGradient(
-                            colorStops = arrayOf(
-                                0f to "#CA799A".cssToColor(),
-                                1.00f to "#EFEFEF".cssToColor(),
-                            ),
-                            start = Offset.Zero,
-                            end = Offset(x = maxWidth, y = 250f)
-                        )
-                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(260.dp)
+                        .background(
+                            Brush.linearGradient(
+                                colorStops = arrayOf(
+                                    0f to Color(0xFFA0B69E),
+                                    1.00f to Color(0xFFA0B69E).copy(alpha = 0.3f)
+                                ),
+                                start = Offset.Zero,
+                                end = Offset(x = maxWidth, y = 300f)
+                            )
+                        ),
                 ) {
                     NavBar(
                         title = title,
@@ -141,128 +153,89 @@ class PlaylistSongScreen(
                         titleColor = Color.White,
                         background = Color.Transparent,
                         action = {
-                            IconButton(onClick = {
-                                if (type == PlaylistType.PLAYLIST) {
-                                    showEditSheet = true
-                                }
-                            }) {
-                                if (type == PlaylistType.PLAYLIST) {
+                            if (type == PlaylistType.PLAYLIST) {
+                                IconButton(onClick = { showEditSheet = true }) {
                                     Icon(
                                         painterResource(Res.drawable.more),
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(18.dp),
+                                        tint = Color.White,
+                                        modifier = Modifier.size(20.dp),
                                         contentDescription = null,
                                     )
                                 }
-
                             }
                         }
                     )
                     info.value?.let {
-                        SongInfo(it.name, it.count, modifier = Modifier.weight(1f))
+                        SongInfo(it.name, it.count)
                     }
-
                 }
+
+                // 下方歌单内容白卡片
                 Column(
                     modifier = Modifier
                         .height(maxHeight - 210.dp)
                         .fillMaxWidth()
                         .shadow(
-                            elevation = 10.dp,
-                            shape = RoundedCornerShape(
-                                topStart = 20.dp,
-                                topEnd = 20.dp
-                            ),
+                            elevation = 16.dp,
+                            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
                             clip = false
                         )
-                        .clip(RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp))
-                        .background(Color.White)
+                        .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
+                        .background(MaterialTheme.colorScheme.surface)
                         .align(Alignment.BottomStart)
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth()
-                            .padding(start = 10.dp)
-                            .padding(vertical = 5.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Button(
-                                modifier = Modifier.width(90.dp).height(32.dp),
-                                shape = RoundedCornerShape(4.dp),
-                                contentPadding = PaddingValues(horizontal = 2.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.primary,
-                                ),
-                                onClick = {
-                                    vm.play(0)
-                                }
-                            ) {
-                                Row(
-                                    horizontalArrangement = Arrangement.Center,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Icon(
-                                        painterResource(Res.drawable.play3),
-                                        contentDescription = null
-                                    )
-                                    Spacer(modifier = Modifier.width(5.dp))
-                                    Text("播放全部")
-                                }
-                            }
-                        }
-                        IconButton(onClick = { showSortSongBottomSheet = true }) {
-                            Icon(
-                                painterResource(Res.drawable.sort1),
-                                modifier = Modifier.size(16.dp),
-                                contentDescription = null,
-                                tint = "#E6A699".cssToColor(),
-                            )
-                        }
-                    }
+
+                    PlaylistSongTopBar(
+                        showISLike = false,
+                        onSortClick = { showSortSongBottomSheet = true },
+                        sortEntity = sortEntity,
+                        onPlay = { vm.play(it) }
+                    )
 
                     if (songList.value.isEmpty()) {
-                        RhythboxSongEmptyState(
-                            describe = when (type) {
-                                PlaylistType.ALBUM -> "这张专辑的磁带还没录入声音，快去给它填满曲目吧~"
-                                PlaylistType.ARTIST -> "这位音乐人还在创作中，舞台正静候旋律响起~"
-                                PlaylistType.DIR -> "这个文件夹静悄悄的，小精灵还没在这里搜刮到音符~"
-                                PlaylistType.PLAYLIST -> "新建的宝藏歌单空空如也，快把心爱的旋律装进盒子里吧~" // 🌟 顺手帮你纠正了 PLAYlIST 的大小写拼写~
-                            },
-                            // 🌟 按钮文案微调：如果是歌单空，引导用户“去选歌”；如果是其他类型空，引导用户去“扫描/添加”
-                            buttonText = when (type) {
-                                PlaylistType.PLAYLIST -> "去选歌"
-                                else -> "去扫描"
-                            },
-                            onButtonClick = {
-                                when (type) {
-                                    PlaylistType.PLAYLIST -> navigator.push(SongScreen())
-                                    else -> navigator.push(ScanMusicScreen())
+                        Box(modifier = Modifier.weight(1f)) {
+                            RhythboxSongEmptyState(
+                                describe = when (type) {
+                                    PlaylistType.ALBUM -> "这张专辑的磁带还没录入声音，快去给它填满曲目吧~"
+                                    PlaylistType.ARTIST -> "这位音乐人还在创作中，舞台正静候旋律响起~"
+                                    PlaylistType.DIR -> "这个文件夹静悄悄的，小精灵还没在这里搜刮到音符~"
+                                    PlaylistType.PLAYLIST -> "新建的宝藏歌单空空如也，快把心爱的旋律装进盒子里吧~"
+                                },
+                                buttonText = when (type) {
+                                    PlaylistType.PLAYLIST -> "去选歌"
+                                    else -> "去扫描"
+                                },
+                                onButtonClick = {
+                                    when (type) {
+                                        PlaylistType.PLAYLIST -> navigator.push(SongScreen())
+                                        else -> navigator.push(ScanMusicScreen())
+                                    }
                                 }
-                            }
-                        )
+                            )
+                        }
                     } else {
                         LazyColumn(
-                            modifier = Modifier.fillMaxWidth().weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f),
+                            contentPadding = PaddingValues(vertical = 4.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            items(songList.value.size) {
-                                val item = songList.value[it]
+                            items(songList.value.size) { index ->
+                                val item = songList.value[index]
                                 SongItem(
                                     title = item.name,
                                     subTitle = item.artist ?: "未知歌手",
                                     duration = item.duration,
-                                    isPlay = isCurrentPlaying(playUuid.value, item.uuid),
+                                    isPlay = isCurrentPlaying(playMediaId.value, item.mediaId),
                                     isPlaying = isPlaying.value,
-                                    no = it + 1,
+                                    no = index + 1,
                                     onMoreClick = {
                                         selectSong = item
                                         showSongBottomSheet = true
                                     },
                                     onClick = {
-                                        vm.play(it)
+                                        vm.play(index)
                                     }
                                 )
                             }
@@ -302,28 +275,38 @@ class PlaylistSongScreen(
             }
         )
 
-        if (type == PlaylistType.PLAYLIST && playlistInfo.value != null) {
-            val info = playlistInfo.value!!
-            PlaylistInfoBottomSheet(
-                playlistName = info.name,
-                songCount = info.count,
-                createDate = formatDate(info.createTime),
-                description = info.describe ?: "还没有简介哦",
-                show = showEditSheet,
-                onDismissRequest = { showEditSheet = false },
-                onDeleteClick = { showAlertDialog = true }
-            )
+        if (type == PlaylistType.PLAYLIST) {
+            playlistInfo?.let { info ->
+                PlaylistInfoBottomSheet(
+                    playlistName = info.name,
+                    songCount = info.count,
+                    createDate = formatDate(info.createTime),
+                    description = info.describe ?: "还没有简介哦",
+                    show = showEditSheet,
+                    onDismissRequest = { showEditSheet = false },
+                    onDeleteClick = { showAlertDialog = true },
+                    onEditClick = {
+                        showEditSheet = false
+                        playlistInfoBottomSheet = true
+                    }
+                )
+
+                EditPlaylist(
+                    playlistId = info.id,
+                    show = playlistInfoBottomSheet,
+                    onCancel = { playlistInfoBottomSheet = false },
+                    onSuccess = {
+                        playlistInfoBottomSheet = false
+                    }
+                )
+            }
+
         }
 
         SortSongBottomSheet(
             show = showSortSongBottomSheet,
-            currentSort = "",
-            onSortSelected = {
-
-            },
-            onDismissRequest = {
-                showSortSongBottomSheet = false
-            }
+            sortKey = key,
+            onDismissRequest = { showSortSongBottomSheet = false }
         )
     }
 }
@@ -331,34 +314,44 @@ class PlaylistSongScreen(
 @Composable
 private fun SongInfo(
     name: String,
-    count: Int,
-    modifier: Modifier
+    count: Int
 ) {
     Row(
-        modifier = modifier
-            .padding(horizontal = 20.dp, vertical = 5.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
+        // 优化封面精致感
         Image(
             painterResource(Res.drawable.logo),
             contentDescription = null,
-            modifier = Modifier.size(100.dp)
-                .shadow(10.dp, RoundedCornerShape(8.dp))
-                .clip(RoundedCornerShape(8.dp))
+            modifier = Modifier
+                .size(100.dp)
+                .shadow(8.dp, RoundedCornerShape(14.dp))
+                .clip(RoundedCornerShape(14.dp))
         )
+        Spacer(Modifier.width(16.dp))
         Column(
-            modifier = Modifier.weight(1f).height(100.dp)
-                .padding(horizontal = 10.dp),
+            modifier = Modifier
+                .weight(1f)
+                .height(100.dp),
             verticalArrangement = Arrangement.Center
         ) {
             Text(
-                name,
+                text = name,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                fontSize = 18.sp,
-                lineHeight = 45.sp,
-                fontWeight = FontWeight.Bold
+                fontSize = 19.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White
             )
-            Text("$count 首音乐", fontSize = 16.sp)
+            Spacer(Modifier.height(6.dp))
+            Text(
+                text = "$count 首音乐",
+                fontSize = 13.sp,
+                color = Color.White.copy(alpha = 0.8f)
+            )
         }
     }
 }
@@ -369,14 +362,16 @@ class PlaylistSongModel(
     val title: String,
     val key: String,
     val navigator: Navigator
-) :
-    ScreenModel {
+) : ScreenModel {
     val songDao = Rhythbox.dataBase.getSongDao()
     val playlistDao = Rhythbox.dataBase.getPlaylistDao()
     val playListSortDao = Rhythbox.dataBase.getPlayListSortDao()
     val playKey = Rhythbox.player.playKey
     private val _playlistInfo = MutableStateFlow<PlaylistEntity?>(null)
     val playlistInfo = _playlistInfo.asStateFlow()
+    private val _sortEntity = MutableStateFlow(PlaylistSortEntity(sortKey = key))
+
+    val sortEntity = _sortEntity.asStateFlow()
 
     init {
         if (type == PlaylistType.PLAYLIST) {
@@ -386,26 +381,27 @@ class PlaylistSongModel(
         }
     }
 
-
     @OptIn(ExperimentalCoroutinesApi::class)
-    val songList = playListSortDao.get(key).flatMapLatest {
-        val sort = getSortType(it?.sortType)
-        when (type) {
-            PlaylistType.ALBUM -> songDao.getAlbum(title, sort)
-            PlaylistType.ARTIST -> songDao.getArtist(title, sort)
-            PlaylistType.DIR -> songDao.getDir(title, sort)
-            PlaylistType.PLAYLIST -> songDao.getPlayListSong(id, sort)
+    val songList = playListSortDao.get(key).flatMapLatest { sort ->
+        val sortConfig = sort ?: PlaylistSortEntity(sortKey = key)
+        val songs = when (type) {
+            PlaylistType.ALBUM -> songDao.getAlbum(title)
+            PlaylistType.ARTIST -> songDao.getArtist(title)
+            PlaylistType.DIR -> songDao.getDir(title)
+            PlaylistType.PLAYLIST -> songDao.getPlayListSong(id)
+        }
+        _sortEntity.value = sortConfig
+        songs.map { rawList ->
+            val list = rawList.map { song -> song.copy(mediaId = generateMediaId(key, song)) }
+            sortSong(list, sortConfig.sortName, sortConfig.sortType)
         }
     }.onEach {
         if (playKey.value == key) resetMediaItems()
-    }.map { rawList ->
-        rawList.map { song -> song.copy(uuid = generateMediaId(key, song)) }
     }.stateIn(
         scope = screenModelScope,
         started = SharingStarted.WhileSubscribed(5000),
-        initialValue = emptyList()
+        initialValue = mutableStateListOf()
     )
-
 
     private val player = Rhythbox.player
     val info = when (type) {
@@ -421,7 +417,7 @@ class PlaylistSongModel(
 
     fun play(index: Int = 0) {
         player.let { p ->
-            p.resetMediaItems(key, SongListType.LocalList(songList.value), false)
+            p.resetMediaItems(key, SongListType.LocalList(songList.value.toMutableList()), false)
             p.prepare(index)
             p.play()
         }
@@ -430,7 +426,11 @@ class PlaylistSongModel(
     fun resetMediaItems() {
         screenModelScope.launch {
             delay(50.milliseconds)
-            player.resetMediaItems(key, SongListType.LocalList(songList.value), false)
+            player.resetMediaItems(
+                key,
+                SongListType.LocalList(songList.value.toMutableList()),
+                false
+            )
         }
     }
 
@@ -440,9 +440,8 @@ class PlaylistSongModel(
                 playlistDao.deletePlaylistWithSongs(id)
                 navigator.pop()
             } catch (e: Exception) {
-                SnackbarManager.show("删除失败： ${e.message}")
+                ToastManager.show("删除失败： ${e.message}")
             }
         }
     }
 }
-

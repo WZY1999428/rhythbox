@@ -42,7 +42,7 @@ import rhythbox.composeapp.generated.resources.folder_pink
 import rhythbox.composeapp.generated.resources.right
 import rhythbox.composeapp.generated.resources.scanning
 import wzy.hkta.rhythbox.components.NavBar
-import wzy.hkta.rhythbox.components.RhythboxSongEmptyState
+import wzy.hkta.rhythbox.components.song.RhythboxSongEmptyState
 import wzy.hkta.rhythbox.cssToColor
 import wzy.hkta.rhythbox.screens.song.SongScreen
 import wzy.hkta.rhythbox.utils.Rhythbox

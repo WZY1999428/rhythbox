@@ -6,11 +6,10 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import wzy.hkta.rhythbox.utils.fatchMusic.Banner
-import wzy.hkta.rhythbox.utils.fatchMusic.FetchMusic
-import wzy.hkta.rhythbox.utils.fatchMusic.Playlist
-import wzy.hkta.rhythbox.utils.fatchMusic.PlaylistBanner
-import wzy.hkta.rhythbox.utils.fatchMusic.PlaylistTab
+import wzy.hkta.rhythbox.fatchMusic.FetchMusic
+import wzy.hkta.rhythbox.fatchMusic.Playlist
+import wzy.hkta.rhythbox.fatchMusic.PlaylistBanner
+import wzy.hkta.rhythbox.fatchMusic.PlaylistTab
 
 class PlaylistSquareViewModel : ScreenModel {
 
@@ -39,8 +38,8 @@ class PlaylistSquareViewModel : ScreenModel {
     fun getPlaylistSquare() {
         screenModelScope.launch {
             try {
-                val dataFuture = async { FetchMusic.getPlaylistSquare() }
-                val tabsFuture = async { FetchMusic.getPlaylistTabs() }
+                val dataFuture = async { FetchMusic.music.getPlaylistSquare() }
+                val tabsFuture = async { FetchMusic.music.getPlaylistTabs() }
                 val data = dataFuture.await()
                 _playlistTabs.value = tabsFuture.await()
                 _banner.value = data.banner
@@ -54,7 +53,7 @@ class PlaylistSquareViewModel : ScreenModel {
     fun getPlaylistRecommend() {
         screenModelScope.launch {
             try {
-                val data = FetchMusic.getPlaylistRecommend(_playlistType.value)
+                val data = FetchMusic.music.getPlaylistRecommend(_playlistType.value)
                 println(data)
                 _recommendPlaylist.value = data.list
             } catch (e: Exception) {

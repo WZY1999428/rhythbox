@@ -51,7 +51,7 @@ fun NavBar(
                     strokeWidth = 1.dp.toPx()
                 )
             }
-        }.windowInsetsPadding(WindowInsets.statusBars).height(45.dp).then(modifier)
+        }.windowInsetsPadding(WindowInsets.statusBars).height(50.dp).then(modifier)
     ) {
         IconButton(
             modifier = Modifier.align(Alignment.CenterStart),

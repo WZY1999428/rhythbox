@@ -18,6 +18,7 @@ import wzy.hkta.rhythbox.expect.getDatabaseBuilder
 import wzy.hkta.rhythbox.expect.getRoomDatabase
 import wzy.hkta.rhythbox.expect.initKetch
 import wzy.hkta.rhythbox.utils.DownloadEngine
+import wzy.hkta.rhythbox.utils.Rhythbox
 import java.io.File
 
 class MainActivity : ComponentActivity() {
@@ -25,19 +26,24 @@ class MainActivity : ComponentActivity() {
     private lateinit var database: AppDatabase
     private lateinit var rhythboxPlayer: RhythboxPlayer
     private lateinit var scanMusic: ScanMusic
-    private lateinit var downloadEngine: Ketch
-    private val floatLyric = FloatLyric(this)
 
     @SuppressLint("RememberReturnType")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val savePath = File(this.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), "rhythbox")
+        val savePath = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "rhythbox")
         database = getRoomDatabase(getDatabaseBuilder(this))
         rhythboxPlayer = RhythboxPlayer(this, database)
         scanMusic = ScanMusic(this, database)
-        downloadEngine = initKetch(savePath.absolutePath, DriverFactory(this,"rhythbox-ketch.db"))
+        Rhythbox.init(rhythboxPlayer, database, scanMusic,  FloatLyric(this))
+        DownloadEngine.initEngine(
+            initKetch(
+                savePath.absolutePath,
+                DriverFactory(this, "rhythbox-ketch.db")
+            ), savePath.absolutePath
+        )
+
         setContent {
-            App(rhythboxPlayer, database, scanMusic, floatLyric, downloadEngine)
+            App(rhythboxPlayer)
         }
     }
 }

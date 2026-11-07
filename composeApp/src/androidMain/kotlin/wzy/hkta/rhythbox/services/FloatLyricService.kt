@@ -37,7 +37,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import wzy.hkta.rhythbox.utils.Rhythbox
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -72,7 +71,6 @@ class FloatLyricService : Service(), LifecycleOwner, SavedStateRegistryOwner {
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (!Settings.canDrawOverlays(this)) {
             stopSelf()
@@ -89,7 +87,6 @@ class FloatLyricService : Service(), LifecycleOwner, SavedStateRegistryOwner {
     /**
      * 2. 配置专属的 3D 悬浮窗参数
      */
-    @RequiresApi(Build.VERSION_CODES.O)
     private fun initLayoutParams() {
         layoutParams = WindowManager.LayoutParams().apply {
             width = WindowManager.LayoutParams.MATCH_PARENT // 宽度全屏，方便拖动或两边延展
@@ -108,7 +105,6 @@ class FloatLyricService : Service(), LifecycleOwner, SavedStateRegistryOwner {
     /**
      * 3. 构建并挂载 Compose 悬浮窗视图
      */
-    @RequiresApi(Build.VERSION_CODES.O)
     private fun initComposeView() {
         // 注入伪装的生命周期节点
         composeView = ComposeView(this).apply {

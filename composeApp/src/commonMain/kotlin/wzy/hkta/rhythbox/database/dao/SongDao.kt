@@ -26,6 +26,7 @@ interface SongDao {
 
     @Query("SELECT * FROM SongCache WHERE url = :url")
     suspend fun getSongCacheByUrl(url: String): SongCache?
+
     @Query("SELECT * FROM SongCache")
     suspend fun getSongCache(): List<SongCache>
 
@@ -34,8 +35,9 @@ interface SongDao {
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertPlayHistory(item: PlayHistoryEntity)
+
     @Query("SELECT * FROM PlayHistoryEntity ORDER BY createTime DESC LIMIT 100")
-    suspend  fun getPlayHistory(): List<PlayHistoryEntity>
+    suspend fun getPlayHistory(): List<PlayHistoryEntity>
 
     @Query("DELETE FROM PlayHistoryEntity WHERE id NOT IN (SELECT id FROM PlayHistoryEntity ORDER BY createTime DESC LIMIT 99)")
     suspend fun deleteOldPlayHistory(): Unit
@@ -55,8 +57,8 @@ interface SongDao {
     @Query("SELECT COUNT(*) FROM (SELECT * FROM SongEntity WHERE playCount > 0 ORDER BY playCount DESC LIMIT 100)")
     fun getPlayCount(): Flow<Int>
 
-    @Query("SELECT *,EXISTS( SELECT 1 FROM CollectEntity c WHERE c.songId = s.id ) AS isLike FROM SongEntity s ORDER BY :sort DESC LIMIT 100")
-    fun getRecentlyAddedSongs(sort: String): Flow<List<SongEntity>>
+    @Query("SELECT *,EXISTS( SELECT 1 FROM CollectEntity c WHERE c.songId = s.id ) AS isLike FROM SongEntity s  LIMIT 100")
+    fun getRecentlyAddedSongs(): Flow<List<SongEntity>>
 
     @Query("SELECT COUNT(*) FROM (SELECT id FROM SongEntity ORDER BY createTime DESC LIMIT 100)")
     fun getRecentlyAddedCount(): Flow<Int>
@@ -76,23 +78,23 @@ interface SongDao {
     fun search(keyword: String): List<SongEntity>
 
 
-    @Query("SELECT s.*, EXISTS( SELECT 1 FROM CollectEntity c WHERE c.songId = s.id ) AS isLike FROM SongEntity s ORDER BY :sort")
-    fun find(sort: String? = "createTime ASC"): Flow<List<SongEntity>>
+    @Query("SELECT s.*, EXISTS( SELECT 1 FROM CollectEntity c WHERE c.songId = s.id ) AS isLike FROM SongEntity s ")
+    fun find(): Flow<List<SongEntity>>
 
     @Query("SELECT * FROM SongEntity WHERE id = :id")
     fun getById(id: Long): SongEntity?
 
     @Query("SELECT * FROM SongEntity WHERE id IN (:ids)")
-    fun getByIds(ids: List<Long>): List<SongEntity>
+    fun getByIds(ids: List<Long>): MutableList<SongEntity>
 
-    @Query("SELECT *,EXISTS( SELECT 1 FROM CollectEntity c WHERE c.songId = s.id ) AS isLike FROM SongEntity s WHERE album=:album ORDER BY :sort")
-    fun getAlbum(album: String, sort: String = "name AES"): Flow<List<SongEntity>>
+    @Query("SELECT *,EXISTS( SELECT 1 FROM CollectEntity c WHERE c.songId = s.id ) AS isLike FROM SongEntity s WHERE album=:album ")
+    fun getAlbum(album: String, ): Flow<MutableList<SongEntity>>
 
-    @Query("SELECT *, EXISTS( SELECT 1 FROM CollectEntity c WHERE c.songId = s.id ) AS isLike FROM SongEntity s WHERE artist=:artist ORDER BY :sort")
-    fun getArtist(artist: String, sort: String = "name AES"): Flow<List<SongEntity>>
+    @Query("SELECT *, EXISTS( SELECT 1 FROM CollectEntity c WHERE c.songId = s.id ) AS isLike FROM SongEntity s WHERE artist=:artist ")
+    fun getArtist(artist: String, ): Flow<MutableList<SongEntity>>
 
-    @Query("SELECT *,EXISTS( SELECT 1 FROM CollectEntity c WHERE c.songId = s.id ) AS isLike FROM SongEntity s WHERE dirId=:dir ORDER BY :sort")
-    fun getDir(dir: String, sort: String = "name AES"): Flow<List<SongEntity>>
+    @Query("SELECT *,EXISTS( SELECT 1 FROM CollectEntity c WHERE c.songId = s.id ) AS isLike FROM SongEntity s WHERE dirId=:dir ")
+    fun getDir(dir: String, ): Flow<MutableList<SongEntity>>
 
     @Query("SELECT COUNT(*) FROM (SELECT * FROM SongEntity WHERE dirId=:dir)")
     fun getDirCount(dir: String): Flow<Int>
@@ -166,19 +168,19 @@ interface SongDao {
     INNER JOIN SongEntity s
         ON s.id = ps.songId
     WHERE ps.playlistId = :id
-    ORDER BY :sort
+    
 """
     )
-    fun getPlayListSong(id: Long, sort: String = "name ASC"): Flow<List<SongEntity>>
+    fun getPlayListSong(id: Long): Flow<MutableList<SongEntity>>
 
     @Query(
         """
     SELECT song.*,EXISTS(SELECT 1 FROM CollectEntity c WHERE c.songId = song.id ) AS isLike FROM CollectEntity s
     LEFT JOIN SongEntity song ON s.songId = song.id
-    GROUP BY s.id ORDER BY :sort
+    GROUP BY s.id 
     """
     )
-    fun findCollect(sort: String): Flow<List<SongEntity>>
+    fun findCollect(): Flow<List<SongEntity>>
 
     @Query("SELECT COUNT(*) FROM CollectEntity ")
     fun collectCount(): Flow<Int>
@@ -196,10 +198,10 @@ interface SongDao {
     suspend fun insertLyric(item: LyricEntity)
 
     @Query("SELECT * FROM LyricEntity WHERE songId = :id")
-    fun getLyric(id: Long): LyricEntity?
+    fun getLyric(id: String): LyricEntity?
 
     @Query("UPDATE LyricEntity SET `offset` = :offset WHERE songId=:songId")
-    fun updateLyricOffset(songId: Long, offset: Int)
+    fun updateLyricOffset(songId: String, offset: Int)
 
     @Query("DELETE FROM LyricEntity")
     fun clearLyric()

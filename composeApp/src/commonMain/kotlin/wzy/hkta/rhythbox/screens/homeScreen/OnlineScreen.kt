@@ -44,8 +44,8 @@ import rhythbox.composeapp.generated.resources.classify
 import rhythbox.composeapp.generated.resources.recently
 import wzy.hkta.rhythbox.screens.playlist.PlaylistScreen
 import wzy.hkta.rhythbox.screens.playlist.PlaylistSquareScreen
-import wzy.hkta.rhythbox.screens.song.NetSongScreen
-import wzy.hkta.rhythbox.screens.search.netSearch.NetSearchScreen
+import wzy.hkta.rhythbox.screens.song.OnlineSongScreen
+import wzy.hkta.rhythbox.screens.search.netSearch.OnlineSearchScreen
 
 private data class Playlist(
     val title: String,
@@ -54,7 +54,10 @@ private data class Playlist(
 )
 
 @Composable
-fun OnlineScreen(viewModel: HomeViewModel, navigator: Navigator) {
+fun OnlineScreen(
+    viewModel: HomeViewModel,
+    navigator: Navigator
+) {
     val cardColor = MaterialTheme.colorScheme.surfaceVariant
     val accent = MaterialTheme.colorScheme.primary
     val textSecondary = Color(0xFF92939F)
@@ -123,7 +126,7 @@ fun OnlineScreen(viewModel: HomeViewModel, navigator: Navigator) {
                             .background(cardColor)
                             .clickable {
                                 // TODO 打开在线搜索页
-                                navigator.push(NetSearchScreen())
+                                navigator.push(OnlineSearchScreen())
                             }
                             .padding(horizontal = 16.dp),
                         verticalAlignment = Alignment.CenterVertically
@@ -195,7 +198,7 @@ fun OnlineScreen(viewModel: HomeViewModel, navigator: Navigator) {
                                     fontSize = 12.sp
                                 )
                                 Text(
-                                    text = banner.desc,
+                                    text = banner.desc ?: "",
                                     color = Color.White,
                                     fontSize = 21.sp,
                                     fontWeight = FontWeight.Bold
@@ -245,16 +248,16 @@ fun OnlineScreen(viewModel: HomeViewModel, navigator: Navigator) {
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     QuickEntry(Res.drawable.music, "每日推荐", accent) {
-                        navigator.push(NetSongScreen("dailyRecommend", "每日推荐"))
+                        navigator.push(OnlineSongScreen("dailyRecommend", "每日推荐"))
                     }
                     QuickEntry(Res.drawable.leaderboard, "排行榜", accent) {
-                        navigator.push(NetSongScreen("leaderboard", "排行榜"))
+                        navigator.push(OnlineSongScreen("leaderboard", "排行榜"))
                     }
                     QuickEntry(Res.drawable.classify, "歌单广场", accent) {
                         navigator.push(PlaylistSquareScreen())
                     }
                     QuickEntry(Res.drawable.recently, "最近播放", accent) {
-                        navigator.push(NetSongScreen("recently", "最近播放"))
+                        navigator.push(OnlineSongScreen("recently", "最近播放"))
                     }
                 }
             }
@@ -283,7 +286,7 @@ fun OnlineScreen(viewModel: HomeViewModel, navigator: Navigator) {
                                 modifier = Modifier
                                     .width(145.dp)
                                     .clickable {
-                                        navigator.push(NetSongScreen(item.key, item.title))
+                                        navigator.push(OnlineSongScreen(item.key, item.title))
                                     },
                                 verticalArrangement = Arrangement.spacedBy(9.dp)
                             ) {
@@ -344,7 +347,7 @@ fun OnlineScreen(viewModel: HomeViewModel, navigator: Navigator) {
                         accent = accent,
                         onMore = {
                             // TODO 查看更多新歌
-                            navigator.push(NetSongScreen("hot", "热门新歌"))
+                            navigator.push(OnlineSongScreen("hot", "热门新歌"))
                         }
                     )
 

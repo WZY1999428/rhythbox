@@ -21,8 +21,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import wzy.hkta.rhythbox.components.NavBar
 import wzy.hkta.rhythbox.components.PlaylistCard
-import wzy.hkta.rhythbox.utils.fatchMusic.FetchMusic
-import wzy.hkta.rhythbox.utils.fatchMusic.PlaylistInfo
+import wzy.hkta.rhythbox.fatchMusic.FetchMusic
+import wzy.hkta.rhythbox.fatchMusic.PlaylistInfo
 
 
 class PlaylistScreen(
@@ -31,7 +31,6 @@ class PlaylistScreen(
 ) : Screen {
     @Composable
     override fun Content(){
-
         val navigator = LocalNavigator.currentOrThrow
         val vm = rememberScreenModel(tag = "${title}_${id}") { PlaylistViewModel() }
          val playlist = vm.playlist.collectAsState()
@@ -53,7 +52,7 @@ class PlaylistScreen(
                         subtitle = item.description,
                         playCount = item.playTotal,
                         onClick = {
-                            navigator.push(NetPlaylistSongScreen(title = item.title, id = item.id))
+                            navigator.push(OnlinePlaylistSongScreen(title = item.title, id = item.id))
                         }
                     )
                 }
@@ -75,7 +74,7 @@ class PlaylistViewModel : ScreenModel {
     fun getList(){
         screenModelScope.launch {
             try {
-             val data = FetchMusic.getPlayList()
+             val data = FetchMusic.music.getPlayList()
              total = data.total;
              _playlist.value= data.list
             }catch (err: Exception){

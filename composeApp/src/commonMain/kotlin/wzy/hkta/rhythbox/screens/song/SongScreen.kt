@@ -28,7 +28,10 @@ import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
@@ -41,19 +44,21 @@ import rhythbox.composeapp.generated.resources.scanning
 import rhythbox.composeapp.generated.resources.sort1
 import wzy.hkta.rhythbox.components.BottomControl
 import wzy.hkta.rhythbox.components.NavBar
-import wzy.hkta.rhythbox.components.RhythboxSongEmptyState
-import wzy.hkta.rhythbox.components.SongBottomSheet
-import wzy.hkta.rhythbox.components.SongItem
-import wzy.hkta.rhythbox.components.SortSongBottomSheet
+import wzy.hkta.rhythbox.components.song.RhythboxSongEmptyState
+import wzy.hkta.rhythbox.components.song.SongBottomSheet
+import wzy.hkta.rhythbox.components.song.SongItem
+import wzy.hkta.rhythbox.components.song.SortSongBottomSheet
 import wzy.hkta.rhythbox.cssToColor
+import wzy.hkta.rhythbox.database.PlaylistSortEntity
 import wzy.hkta.rhythbox.database.SongEntity
 import wzy.hkta.rhythbox.screens.ScanMusicScreen
 import wzy.hkta.rhythbox.screens.SongMetadataScreen
+import wzy.hkta.rhythbox.screens.playlist.PlaylistSongTopBar
 import wzy.hkta.rhythbox.utils.Rhythbox
 import wzy.hkta.rhythbox.utils.SongListType
 import wzy.hkta.rhythbox.utils.generateMediaId
-import wzy.hkta.rhythbox.utils.getSortType
 import wzy.hkta.rhythbox.utils.isCurrentPlaying
+import wzy.hkta.rhythbox.utils.sortSong
 import kotlin.collections.emptyList
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -65,12 +70,13 @@ class SongScreen(
     @Composable
     override fun Content() {
         val navigator = LocalNavigator.currentOrThrow
-        val vm = rememberScreenModel(tag = "${title}_${key}") { SongViewModel(key, dir) }
-        val songList = vm.songList.collectAsState()
-        val songCount = vm.songCount.collectAsState()
         val player = Rhythbox.player
-        val playUuid = player.playUuid.collectAsState()
-        val isPlaying = player.isPlaying.collectAsState()
+        val vm = rememberScreenModel(tag = "${title}_${key}") { SongViewModel(key, dir) }
+        val songList by vm.songList.collectAsState()
+        val songCount by vm.songCount.collectAsState()
+        val sortEntity by vm.sortEntity.collectAsState()
+        val playMediaId by player.playMediaId.collectAsState()
+        val isPlaying by player.isPlaying.collectAsState()
         var showSongBottomSheet by remember { mutableStateOf(false) }
         var showSortSongBottomSheet by remember { mutableStateOf(false) }
         var selectSong by remember { mutableStateOf<SongEntity?>(null) }
@@ -92,59 +98,16 @@ class SongScreen(
             }
 
             Column(modifier = Modifier.weight(1f)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(start = 10.dp)
-                        .padding(vertical = 5.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Button(
-                            modifier = Modifier.width(90.dp).height(32.dp),
-                            shape = RoundedCornerShape(4.dp),
-                            contentPadding = PaddingValues(horizontal = 2.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primary,
-                            ),
-                            onClick = {
-                                vm.play()
-                            }
-                        ) {
-                            Row(
-                                horizontalArrangement = Arrangement.Center,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    painterResource(Res.drawable.play3),
-                                    contentDescription = null,
-                                    tint = Color.White
-                                )
-                                Spacer(modifier = Modifier.width(5.dp))
-                                Text("播放全部", color = Color.White)
-                            }
-                        }
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Text(
-                            "(${songCount.value})首音乐",
-                            fontSize = 14.sp,
-                            color = "#999999".cssToColor()
-                        )
-                    }
-                    IconButton(onClick = {
-                        showSortSongBottomSheet=true
-                    }) {
-                        Icon(
-                            painterResource(Res.drawable.sort1),
-                            modifier = Modifier.size(16.dp),
-                            contentDescription = null,
-                            tint = Color.Unspecified
-                        )
-                    }
-                }
 
-                if (songList.value.isEmpty()) {
+                PlaylistSongTopBar(
+                    showISLike = false,
+                    onSortClick = { showSortSongBottomSheet = true },
+                    sortEntity = sortEntity,
+                    onPlay = { vm.play(it) }
+                )
+
+
+                if (songList.isEmpty()) {
                     RhythboxSongEmptyState(
                         describe = when (key) {
                             "songScreen" -> "乐动盒里空空如也，快去唤醒藏在手机里的旋律吧~"
@@ -174,15 +137,15 @@ class SongScreen(
                     )
                 } else {
                     LazyColumn(modifier = Modifier.weight(1f)) {
-                        items(songList.value.size) {
-                            val item = songList.value[it]
+                        items(songList.size) {
+                            val item = songList[it]
                             SongItem(
                                 no = it + 1,
                                 title = item.name,
                                 subTitle = item.artist ?: "",
                                 duration = item.duration,
-                                isPlay = isCurrentPlaying(playUuid.value, item.uuid),
-                                isPlaying = isPlaying.value,
+                                isPlay = isCurrentPlaying(playMediaId, item.mediaId),
+                                isPlaying = isPlaying,
                                 onMoreClick = {
                                     selectSong = item
                                     showSongBottomSheet = true
@@ -211,7 +174,7 @@ class SongScreen(
                 onDismissRequest = { showSongBottomSheet = false },
                 onEdit = { navigator.push(SongMetadataScreen(selectSong!!.id)) },
                 onDeleteClick = {
-                    if (songCount.value == 0) {
+                    if (songCount == 0) {
                         navigator.pop()
                     }
                 }
@@ -220,10 +183,7 @@ class SongScreen(
 
         SortSongBottomSheet(
             show = showSortSongBottomSheet,
-            currentSort = "",
-            onSortSelected = {
-
-            },
+            sortKey = key,
             onDismissRequest = {
                 showSortSongBottomSheet = false
             }
@@ -234,26 +194,31 @@ class SongScreen(
 
 private class SongViewModel(val key: String, dir: String?) : ScreenModel {
     var songDao = Rhythbox.dataBase.getSongDao()
-    val playListSortDao = Rhythbox.dataBase.getPlayListSortDao()
-
+    private val _sortEntity = MutableStateFlow(PlaylistSortEntity(sortKey = key))
+    val sortEntity = _sortEntity.asStateFlow()
     private val player = Rhythbox.player
-    val playKey = player.playKey
 
-    @OptIn(ExperimentalCoroutinesApi::class)
-    val songList = playListSortDao.get(key).flatMapLatest {
-        val sort = getSortType(it?.sortType)
-        when (key) {
-            "songScreen" -> songDao.find(sort)
-            "RecentlyAdded" -> songDao.getRecentlyAddedSongs(sort)
-            "MusicRankings" -> songDao.getPlayCountList()
-            "FolderScreen$dir" -> songDao.getDir(dir!!, sort)
-            "MyCollection" -> songDao.findCollect(sort)
-            else -> songDao.find(sort)
-        }
-    }.map { rawList ->
-        rawList.map { song -> song.copy(uuid = generateMediaId(key, song)) }
+    val songs = when (key) {
+        "songScreen" -> songDao.find()
+        "RecentlyAdded" -> songDao.getRecentlyAddedSongs()
+        "MusicRankings" -> songDao.getPlayCountList()
+        "FolderScreen$dir" -> songDao.getDir(dir!!)
+        "MyCollection" -> songDao.findCollect()
+        else -> songDao.find()
+    }
+    val songList = combine(
+        songs,
+        Rhythbox.dataBase.getPlayListSortDao().get(key)
+    ) { rawList, sort ->
+        val sortConfig = sort ?: PlaylistSortEntity(sortKey = key)
+        _sortEntity.value = sortConfig
+        val list = rawList.map { song -> song.copy(mediaId = generateMediaId(key, song)) }
+        sortSong(list, sortConfig.sortName, sortConfig.sortType)
+
     }.onEach {
-        if (playKey.value == key) resetMediaItems()
+        if (player.playKey.value == key) {
+            resetMediaItems()
+        }
     }.stateIn(
         scope = screenModelScope,
         started = SharingStarted.WhileSubscribed(5000),
@@ -276,7 +241,7 @@ private class SongViewModel(val key: String, dir: String?) : ScreenModel {
 
     fun play(index: Int = 0) {
         player.let { p ->
-            p.resetMediaItems(key, SongListType.LocalList(songList.value), false)
+            p.resetMediaItems(key, SongListType.LocalList(songList.value.toMutableList()), false)
             p.prepare(index)
             p.play()
         }
@@ -285,7 +250,11 @@ private class SongViewModel(val key: String, dir: String?) : ScreenModel {
     fun resetMediaItems() {
         screenModelScope.launch {
             delay(50.milliseconds)
-            player.resetMediaItems(key, SongListType.LocalList(songList.value), false)
+            player.resetMediaItems(
+                key,
+                SongListType.LocalList(songList.value.toMutableList()),
+                false
+            )
         }
     }
 }

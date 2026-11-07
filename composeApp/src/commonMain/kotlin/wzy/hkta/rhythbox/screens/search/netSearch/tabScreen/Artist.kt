@@ -9,14 +9,14 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import cafe.adriel.voyager.navigator.Navigator
-import wzy.hkta.rhythbox.screens.artist.NetArtistSongScreen
-import wzy.hkta.rhythbox.screens.search.netSearch.LoadMore
-import wzy.hkta.rhythbox.screens.search.netSearch.NetSearchViewModel
-import wzy.hkta.rhythbox.screens.search.netSearch.SearchArtistItem
+import wzy.hkta.rhythbox.screens.artist.OnlineArtistSongScreen
+import wzy.hkta.rhythbox.components.LoadMore
+import wzy.hkta.rhythbox.screens.search.netSearch.OnlineSearchViewModel
+import wzy.hkta.rhythbox.screens.search.netSearch.ArtistItem
 import wzy.hkta.rhythbox.screens.search.netSearch.SearchType
 
 @Composable
-fun ArtistList(vm: NetSearchViewModel, navigator: Navigator) {
+fun ArtistList(vm: OnlineSearchViewModel, navigator: Navigator) {
     val state by vm.artistList.collectAsState()
     val keyword by vm.keyword.collectAsState()
     LaunchedEffect(keyword) {
@@ -25,11 +25,11 @@ fun ArtistList(vm: NetSearchViewModel, navigator: Navigator) {
 
     LazyColumn(modifier = Modifier.fillMaxSize()) {
         items(state.list) {
-            SearchArtistItem(
+            ArtistItem(
                 name = it.name,
                 avatarUrl = it.avatar,
                 onClick = {
-                    navigator.push(NetArtistSongScreen(it.id, it.name))
+                    navigator.push(OnlineArtistSongScreen(it.id, it.name))
                 }
             )
         }

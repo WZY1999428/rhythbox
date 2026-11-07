@@ -8,13 +8,13 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import wzy.hkta.rhythbox.screens.search.netSearch.LoadMore
-import wzy.hkta.rhythbox.screens.search.netSearch.NetSearchViewModel
+import wzy.hkta.rhythbox.components.LoadMore
+import wzy.hkta.rhythbox.screens.search.netSearch.OnlineSearchViewModel
 import wzy.hkta.rhythbox.screens.search.netSearch.SearchSongItem
 import wzy.hkta.rhythbox.screens.search.netSearch.SearchType
 
 @Composable
-fun SingleList(vm: NetSearchViewModel) {
+fun SingleList(vm: OnlineSearchViewModel) {
 
     val state by vm.songList.collectAsState()
     val keyword by vm.keyword.collectAsState()

@@ -5,6 +5,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -15,7 +16,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -45,14 +45,14 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import rhythbox.composeapp.generated.resources.more
-import wzy.hkta.rhythbox.expect.LyricStatus
 import wzy.hkta.rhythbox.components.NavBar
 import wzy.hkta.rhythbox.expect.LyricStatus.Finished
 import wzy.hkta.rhythbox.theme.PeachGradientStops
 import wzy.hkta.rhythbox.theme.SavannaGradientStops
 import wzy.hkta.rhythbox.utils.Rhythbox
 import wzy.hkta.rhythbox.utils.SettingManager
-import wzy.hkta.rhythbox.utils.SnackbarManager
+import wzy.hkta.rhythbox.utils.SongType
+import wzy.hkta.rhythbox.utils.ToastManager
 import wzy.hkta.rhythbox.utils.getSongInfo
 import wzy.hkta.rhythbox.utils.marqueeText
 
@@ -64,30 +64,30 @@ class PlayerScreen : Screen {
         val navigator = LocalNavigator.currentOrThrow
         val vm = rememberScreenModel { PlayerViewModel() }
         val player = Rhythbox.player
-        val progress = player.progress.collectAsState()
-        val currentTime = player.currentPosition.collectAsState()
-        val duration = player.duration.collectAsState()
-        val playerLoading = player.playerLoading.collectAsState()
-        val playMode = player.playMode.collectAsState()
-        val lyricList = player.lyricList.collectAsState()
-        val currentSong = player.currentSong.collectAsState()
-        val isPlaying = player.isPlaying.collectAsState()
-        val lyricStatus = player.lyricStatus.collectAsState()
+        val progress by player.progress.collectAsState()
+        val currentTime by player.currentPosition.collectAsState()
+        val duration by player.duration.collectAsState()
+        val playerLoading by player.playerLoading.collectAsState()
+        val playMode by player.playMode.collectAsState()
+        val lyricList by player.lyricList.collectAsState()
+        val currentSong by player.currentSong.collectAsState()
+        val isPlaying by player.isPlaying.collectAsState()
+        val lyricStatus by player.lyricStatus.collectAsState()
         var offset by remember { mutableIntStateOf(0) }
-        val isSystemInDarkTheme = SettingManager.isSystemInDarkTheme.collectAsState()
+        val isSystemInDarkTheme by SettingManager.isSystemInDarkTheme.collectAsState()
         var showLyricsOffsetController by remember { mutableStateOf(false) }
-        LaunchedEffect(lyricStatus.value) {
+        LaunchedEffect(lyricStatus) {
             offset = 0
             showLyricsOffsetController = false
-            if (lyricStatus.value is Finished) {
-                val data = (lyricStatus.value as Finished).data
+            if (lyricStatus is Finished) {
+                val data = (lyricStatus as Finished).data
                 offset = data.offset
                 if (data.lyric.isNotEmpty()) {
                     showLyricsOffsetController = true
                 }
             }
         }
-        val songInfo = getSongInfo(currentSong.value)
+        val songInfo = getSongInfo(currentSong)
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
             val widthPx = constraints.maxWidth.toFloat()
             val heightPx = constraints.maxHeight.toFloat()
@@ -96,7 +96,7 @@ class PlayerScreen : Screen {
                     .fillMaxSize()
                     .background(
                         Brush.linearGradient(
-                            colorStops = when (isSystemInDarkTheme.value) {
+                            colorStops = when (isSystemInDarkTheme) {
                                 true -> PeachGradientStops
                                 false -> SavannaGradientStops
                             },
@@ -105,88 +105,113 @@ class PlayerScreen : Screen {
                         )
                     ),
             ) {
-                NavBar(
-                    title = songInfo?.name ?: "音乐盒",
-                    titleColor = Color.White,
-                    background = Color.Transparent,
-                    iconColor = Color.White,
-                    action = {
-                        IconButton(onClick = {}) {
-                            Icon(
-                                painterResource(Res.drawable.more),
-                                tint = Color.White,
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    NavBar(
+                        title = songInfo?.name ?: "音乐盒",
+                        titleColor = Color.White,
+                        background = Color.Transparent,
+                        iconColor = Color.White,
+                        action = {
+                            IconButton(onClick = {}) {
+                                Icon(
+                                    painterResource(Res.drawable.more),
+                                    tint = Color.White,
+                                    contentDescription = null
+                                )
+                            }
+                        }
+                    )
+                    Surface(
+                        modifier = Modifier.padding(vertical = 20.dp).size(150.dp),
+                        border = BorderStroke(2.dp, Color.White),
+                        shape = CircleShape,
+                        shadowElevation = 6.dp,
+                    ) {
+                        val cover = songInfo?.cover
+                        when (cover.isNullOrBlank()) {
+                            true -> Image(
+                                painter = painterResource(Res.drawable.logo),
                                 contentDescription = null
+                            )
+
+                            false -> AsyncImage(
+                                model = cover,
+                                contentDescription = null,
                             )
                         }
                     }
-                )
-                Surface(
-                    modifier = Modifier.align(alignment = Alignment.TopCenter)
-                        .offset(y = 100.dp)
-                        .size(180.dp),
-                    border = BorderStroke(2.dp, Color.White),
-                    shape = RoundedCornerShape(999.dp),
-                    shadowElevation = 6.dp,
-                ) {
-                    val cover = songInfo?.cover
-                    when (cover.isNullOrBlank()) {
-                        true -> Image(
-                            painter = painterResource(Res.drawable.logo),
-                            contentDescription = null
+                    Column(
+                        modifier = Modifier.fillMaxWidth(0.8f).weight(1f),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            songInfo?.name ?: "",
+                            color = Color.White,
+                            lineHeight = 80.sp,
+                            textAlign = TextAlign.Center,
+                            fontWeight = FontWeight.Bold,
+                            style = TextStyle(
+                                shadow = Shadow(
+                                    color = Color.Black,
+                                    offset = Offset(1f, 4f),
+                                    blurRadius = 4f
+                                )
+                            ),
+                            modifier = Modifier.fillMaxWidth().marqueeText(),
+                            maxLines = 1,
+                            fontSize = 35.sp
                         )
-
-                        false -> AsyncImage(
-                            model = cover,
-                            contentDescription = null,
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Text(
+                            songInfo?.artist ?: "",
+                            lineHeight = 50.sp,
+                            color = Color.White,
+                            fontSize = 24.sp,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth().marqueeText(),
+                            style = TextStyle(
+                                shadow = Shadow(
+                                    color = Color.Black,
+                                    offset = Offset(1f, 4f),
+                                    blurRadius = 4f
+                                )
+                            )
+                        )
+                        Spacer(modifier = Modifier.height(30.dp))
+                        Lyrics(
+                            modifier = Modifier.weight(1f),
+                            currentTime = currentTime,
+                            lyricStatus = lyricStatus,
+                            offset = offset,
+                            onRetry = { player.getSongLyric() }
                         )
                     }
-                }
-                Column(
-                    modifier = Modifier.fillMaxWidth(0.8f)
-                        .align(alignment = Alignment.TopCenter)
-                        .offset(y = 300.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        songInfo?.name ?: "",
-                        color = Color.White,
-                        lineHeight = 80.sp,
-                        textAlign = TextAlign.Center,
-                        fontWeight = FontWeight.Bold,
-                        style = TextStyle(
-                            shadow = Shadow(
-                                color = Color.Black,
-                                offset = Offset(1f, 4f),
-                                blurRadius = 4f
-                            )
-                        ),
-                        modifier = Modifier.fillMaxWidth().marqueeText(),
-                        maxLines = 1,
-                        fontSize = 35.sp
-                    )
-                    Spacer(modifier = Modifier.height(10.dp))
-                    Text(
-                        songInfo?.artist ?: "",
-                        lineHeight = 50.sp,
-                        color = Color.White,
-                        fontSize = 24.sp,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth().marqueeText(),
-                        style = TextStyle(
-                            shadow = Shadow(
-                                color = Color.Black,
-                                offset = Offset(1f, 4f),
-                                blurRadius = 4f
-                            )
-                        )
-                    )
 
-                    Spacer(modifier = Modifier.height(30.dp))
-                    Lyrics(
-                        currentTime = currentTime.value,
-                        lyricStatus = lyricStatus.value,
-                        offset = offset,
-                        onRetry = { player.getSongLyric() }
+                    PlayerBottom(
+                        progress = progress,
+                        currentTime = currentTime,
+                        duration = duration,
+                        isPlay = isPlaying,
+                        playerLoading = playerLoading,
+                        togglePlay = { player.togglePlay() },
+                        playMode = playMode,
+                        lyricsCount = lyricList.size,
+                        songType = currentSong,
+                        prev = { player.prev() },
+                        next = { player.next() },
+                        openLyric = { navigator.push(LyricsScreen()) },
+                        seekTo = { player.seekTo(it) },
+                        onRing = { player.setRhythboxRingtone() },
+                        onChangePlayMode = { player.onChangePlayMode() },
+                        onLike = {
+                            vm.toggleCollect(currentSong!!, !(songInfo?.isLike ?: false))
+                        },
+                        onSelectFolder = {
+                            vm.addFolderSong(it, songInfo!!.id)
+                        }
                     )
                 }
                 if (showLyricsOffsetController) {
@@ -196,52 +221,32 @@ class PlayerScreen : Screen {
                         LyricsOffsetController(
                             onDelayClick = {
                                 offset -= 500
-                                updateLyricsOffset(songInfo!!.id, offset)
+
+                                updateLyricsOffset(currentSong!!, offset)
                             },
                             onAdvanceClick = {
                                 offset += 500
-                                updateLyricsOffset(songInfo!!.id, offset)
+                                updateLyricsOffset(currentSong!!, offset)
                             }
                         )
                     }
                 }
 
 
-                PlayerBottom(
-                    modifier = Modifier.align(Alignment.BottomStart),
-                    progress = progress.value,
-                    currentTime = currentTime.value,
-                    duration = duration.value,
-                    isPlay = isPlaying.value,
-                    playerLoading = playerLoading.value,
-                    togglePlay = { player.togglePlay() },
-                    playMode = playMode.value,
-                    lyricsCount = lyricList.value.size,
-                    showToolbar = songInfo != null,
-                    isLike = songInfo?.isLike ?: false,
-                    prev = { player.prev() },
-                    next = { player.next() },
-                    openLyric = { navigator.push(LyricsScreen()) },
-                    seekTo = { player.seekTo(it) },
-                    onRing = { player.setRhythboxRingtone() },
-                    onChangePlayMode = { player.onChangePlayMode() },
-                    onLike = {
-                        vm.toggleCollect(currentSong.value!!, !(songInfo?.isLike ?: false))
-                    },
-                    onSelectFolder = {
-                        vm.addFolderSong(it, songInfo!!.id, songInfo.cover)
-                    }
-                )
             }
         }
     }
 
 }
 
-fun updateLyricsOffset(songId: Long, offset: Int) {
-    SnackbarManager.show("歌词调整 ${offset.toFloat() / 1000.0} 秒")
+fun updateLyricsOffset(song: SongType, offset: Int) {
+    ToastManager.show("歌词调整 ${offset.toFloat() / 1000.0} 秒")
     CoroutineScope(Dispatchers.IO).launch {
-        Rhythbox.dataBase.getSongDao().updateLyricOffset(songId, offset)
+        val dao = Rhythbox.dataBase.getSongDao()
+        when (song) {
+            is SongType.Local -> dao.updateLyricOffset("local-${song.song.id}", offset)
+            is SongType.Network -> dao.updateLyricOffset("online-${song.song.id}", offset)
+        }
     }
 }
 

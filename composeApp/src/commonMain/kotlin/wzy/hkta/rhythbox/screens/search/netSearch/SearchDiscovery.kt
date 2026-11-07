@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.absoluteOffset
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -118,42 +119,49 @@ fun SearchHistory(
             ) {
                 history.forEach { keyword ->
                     Box(
-                        modifier = Modifier
-                            .background(
-                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
-                                RoundedCornerShape(10.dp)
-                            )
-                            .clickable { onSearch(keyword) }
-                            .padding(horizontal = 12.dp, vertical = 9.dp)
+                        modifier = Modifier.padding(top = 8.dp, end = 8.dp) // 留出一点空间给溢出的关闭按钮
                     ) {
-                        Text(
-                            text = keyword,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-
+                        // 1. 基础的搜索历史标签（点击触发搜索）
                         Box(
                             modifier = Modifier
-                                .size(16.dp)
+                                .background(
+                                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
+                                    RoundedCornerShape(10.dp)
+                                )
+                                .clip(RoundedCornerShape(10.dp))
+                                .clickable {
+                                    onSearch(keyword)
+                                }
+                                .padding(horizontal = 12.dp, vertical = 9.dp)
+                        ) {
+                            Text(
+                                text = keyword,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+
+                        // 2. 将删除按钮作为兄弟组件，用 align(Alignment.TopEnd) 定位到右上角
+                        Box(
+                            modifier = Modifier
+                                .size(16.dp) // 适当增大点击热区，方便用户手指点击
                                 .align(Alignment.TopEnd)
-                                .absoluteOffset(x = 15.dp, y = (-15).dp)
+                                .offset(x = 4.dp, y = (-6).dp) // 微调使其刚好压在右上角边缘
                                 .background(
                                     MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
                                     CircleShape
                                 )
-                                .clickable(
-                                    interactionSource = remember { MutableInteractionSource() },
-                                    indication = null
-                                ) {
-                                    history.remove(keyword)
-                                    StorageManager.setItem("search-history", history.toList())
+                                .clip(CircleShape)
+                                .clickable {
+                                     history.remove(keyword)
+                                     StorageManager.setItem("search-history", history.toList())
                                 },
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 painter = painterResource(Res.drawable.close_grey),
                                 contentDescription = "删除 $keyword",
-                                modifier = Modifier.size(10.dp),
+                                modifier = Modifier.size(7.dp),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
@@ -214,7 +222,7 @@ fun HotKeyword(
                         .clip(RoundedCornerShape(10.dp))
                         .background(
                             if (index < 3) {
-                                MaterialTheme.colorScheme.primaryContainer
+                                MaterialTheme.colorScheme.primary
                             } else {
                                 MaterialTheme.colorScheme.surfaceVariant
                                     .copy(alpha = 0.55f)
@@ -231,7 +239,7 @@ fun HotKeyword(
                         Text(
                             text = "${index + 1}",
                             style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.primary,
+                            color = Color.White,
                             fontWeight = FontWeight.Bold
                         )
 
@@ -242,7 +250,7 @@ fun HotKeyword(
                         text = keyword,
                         style = MaterialTheme.typography.bodyMedium,
                         color = if (index < 3) {
-                            MaterialTheme.colorScheme.onPrimaryContainer
+                            Color.White
                         } else {
                             MaterialTheme.colorScheme.onSurface
                         }

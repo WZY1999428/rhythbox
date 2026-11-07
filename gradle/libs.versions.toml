@@ -3,7 +3,7 @@ android-compileSdk = "37"
 android-minSdk = "26"
 android-targetSdk = "36"
 agp = "8.11.2"
-androidx-activity = "1.13.0"
+androidx-activity = "1.12.4"
 androidx-appcompat = "1.7.1"
 androidx-core = "1.18.0"
 androidx-espresso = "3.7.0"
@@ -12,10 +12,13 @@ androidx-testExt = "1.3.0"
 composeHotReload = "1.1.0"
 composeMultiplatform = "1.10.3"
 composeShimmer = "1.5.0"
+filekitCompose = "0.8.8"
+filekitDialogsCompose = "0.13.0"
 junit = "4.13.2"
 kotlin = "2.3.21"
 kotlinx-coroutines = "1.10.2"
 material3 = "1.10.0-alpha05"
+krop-ui = "0.3.0-alpha01"
 voyager = "1.1.0-beta03"
 room = "2.8.4"
 ktor = "3.4.3"
@@ -31,8 +34,10 @@ jaudiotagger = "2.3.15"
 lifecycle = "2.10.0"
 kmpalette = "4.0.0-beta02"
 ketch = "0.10.2"
+orrery = "0.6.0"
 
 [libraries]
+filekit-dialogs-compose = { module = "io.github.vinceglb:filekit-dialogs-compose", version.ref = "filekitDialogsCompose" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 kotlin-testJunit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
 junit = { module = "junit:junit", version.ref = "junit" }
@@ -45,6 +50,8 @@ compose-ui = { module = "org.jetbrains.compose.ui:ui", version.ref = "composeMul
 compose-components-resources = { module = "org.jetbrains.compose.components:components-resources", version.ref = "composeMultiplatform" }
 compose-uiToolingPreview = { module = "org.jetbrains.compose.ui:ui-tooling-preview", version.ref = "composeMultiplatform" }
 compose-shimmer = { module = "com.valentinilk.shimmer:compose-shimmer", version.ref = "composeShimmer" }
+ktor-client-content-negotiation = { module = "io.ktor:ktor-client-content-negotiation", version.ref = "ktor" }
+ktor-serialization-kotlinx-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktor" }
 linroid-ketch-core = { module = "com.linroid.ketch:core", version.ref = "ketch" }
 linroid-ketch-ktor = { module = "com.linroid.ketch:ktor", version.ref = "ketch" }
 linroid-ketch-sqlite = { module = "com.linroid.ketch:sqlite", version.ref = "ketch" }
@@ -53,21 +60,26 @@ kotlinx-coroutinesSwing = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-s
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "serializationJson" }
 kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version = "0.7.1" }
 kotlinx-lifecycle-process = { module = "androidx.lifecycle:lifecycle-process", version.ref = "lifecycle" }
+#
+orrery-compose = { module = "me.kozakov.orrery:orrery-compose", version.ref = "orrery" }
 
-
-ktor-client-logging = { module = "io.ktor:ktor-client-logging", version = "3.4.3" }
 multiplatform-settings = { module = "com.russhwolf:multiplatform-settings", version = "1.3.0" }
 multiplatform-settings-no-arg = { module = "com.russhwolf:multiplatform-settings-no-arg", version = "1.3.0" }
+
+krop-ui = { module = "com.attafitamim.krop:ui", version.ref = "krop-ui" }
+krop-extensions-filekit = { module = "com.attafitamim.krop:extensions-filekit", version.ref = "krop-ui" }
 
 voyager-navigator = { module = "cafe.adriel.voyager:voyager-navigator", version.ref = "voyager" }
 voyager-transitions = { module = "cafe.adriel.voyager:voyager-transitions", version.ref = "voyager" }
 voyager-screenmodel = { module = "cafe.adriel.voyager:voyager-screenmodel", version.ref = "voyager" }
 voyager-koin = { module = "cafe.adriel.voyager:voyager-koin", version.ref = "voyager" }
 
+ktor-client-logging = { module = "io.ktor:ktor-client-logging", version = "3.4.3" }
 ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
 ktor-client-okhttp = { module = "io.ktor:ktor-client-okhttp", version.ref = "ktor" }
 coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
 coil-network-ktor = { module = "io.coil-kt.coil3:coil-network-okhttp", version.ref = "coil" }
+
 
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "androidx-core" }
 androidx-testExt-junit = { module = "androidx.test.ext:junit", version.ref = "androidx-testExt" }
@@ -93,15 +105,14 @@ adonai-jaudiotagger = { module = "com.github.Adonai:jaudiotagger", version.ref =
 kmpalette-core = { module = "com.materialkolor.palette:core", version.ref = "kmpalette" }
 kmpalette-androidx-palette = { module = "com.materialkolor.palette:androidx-palette", version.ref = "kmpalette" }
 kmpalette-extensions-file = { module = "com.materialkolor.palette:extensions-file", version.ref = "kmpalette" }
+
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
 androidLibrary = { id = "com.android.library", version.ref = "agp" }
-
 composeHotReload = { id = "org.jetbrains.compose.hot-reload", version.ref = "composeHotReload" }
 composeMultiplatform = { id = "org.jetbrains.compose", version.ref = "composeMultiplatform" }
 composeCompiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version = "2.3.21" }
-
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 androidx-room = { id = "androidx.room", version.ref = "room" }

@@ -42,7 +42,7 @@ object NetEaseCloudMusic {
 
     suspend fun getLyric(song: SongEntity): LyricStatus {
         if (isPureMusic(song.name)) return LyricStatus.NotFound
-        val data = Rhythbox.dataBase.getSongDao().getLyric(song.id)
+        val data = Rhythbox.dataBase.getSongDao().getLyric("local-${song.id}")
         if (data != null) return LyricStatus.Finished(
             LyricInfo(
                 parseLyric(data.lyric)!!,
@@ -55,7 +55,7 @@ object NetEaseCloudMusic {
         val text = res.bodyAsText()
         val result = json.decodeFromString<SearchResult>(text)
         val songs = result.result.songs
-        if (songs.isEmpty()) return LyricStatus.NotFound
+        if (songs.isNullOrEmpty()) return LyricStatus.NotFound
         val id = generateContentWithOpenAi(
             "${song.name} ${if (artist != null) "  歌手：$artist" else ""} 时长：${song.duration}",
             songs
@@ -67,7 +67,7 @@ object NetEaseCloudMusic {
             val tlyric = lyricList.getOrNull(1)
             Rhythbox.dataBase.getSongDao().insertLyric(
                 LyricEntity(
-                    songId = song.id,
+                    songId = "local-${song.id}",
                     lyric = lyric,
                     transLyric = tlyric
                 )

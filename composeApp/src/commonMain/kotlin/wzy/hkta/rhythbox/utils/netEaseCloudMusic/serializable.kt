@@ -1,4 +1,5 @@
 package wzy.hkta.rhythbox.utils.netEaseCloudMusic
+
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -48,7 +49,7 @@ internal data class AISong(
 )
 
 @Serializable
- data class AIResult(
+data class AIResult(
     val id: Long?,
 )
 
@@ -59,5 +60,5 @@ internal data class SearchResult(
 
 @Serializable
 internal data class Result(
-    val songs: List<Song>
+    val songs: List<Song>? = null
 )

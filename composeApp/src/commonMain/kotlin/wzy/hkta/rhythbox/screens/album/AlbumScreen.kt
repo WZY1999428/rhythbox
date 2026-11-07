@@ -42,8 +42,7 @@ import rhythbox.composeapp.generated.resources.Res
 import rhythbox.composeapp.generated.resources.logo
 import rhythbox.composeapp.generated.resources.scanning
 import wzy.hkta.rhythbox.components.NavBar
-import wzy.hkta.rhythbox.components.RhythboxSongEmptyState
-import wzy.hkta.rhythbox.screens.playlist.PlaylistScreen
+import wzy.hkta.rhythbox.components.song.RhythboxSongEmptyState
 import wzy.hkta.rhythbox.screens.playlist.PlaylistType
 import wzy.hkta.rhythbox.screens.ScanMusicScreen
 import wzy.hkta.rhythbox.screens.playlist.PlaylistSongScreen
@@ -128,10 +127,7 @@ class AlbumScreen : Screen {
                     }
                 }
             }
-
-
         }
-
     }
 }
 
@@ -143,7 +139,4 @@ private class AlbumViewModel : ScreenModel {
         scope = screenModelScope,
         initialValue = emptyList()
     )
-
-
-//    val albumList=
 }

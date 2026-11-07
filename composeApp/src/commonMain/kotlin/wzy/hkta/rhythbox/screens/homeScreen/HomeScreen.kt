@@ -42,10 +42,11 @@ import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
 import rhythbox.composeapp.generated.resources.*
 import wzy.hkta.rhythbox.components.BottomControl
+import wzy.hkta.rhythbox.screens.DownloadScreen
 import wzy.hkta.rhythbox.screens.album.AlbumScreen
 import wzy.hkta.rhythbox.screens.FolderScreen
-import wzy.hkta.rhythbox.screens.search.SearchScreen
 import wzy.hkta.rhythbox.screens.artist.ArtistScreen
+import wzy.hkta.rhythbox.screens.favorite.FavoriteScreen
 import wzy.hkta.rhythbox.screens.song.SongScreen
 import wzy.hkta.rhythbox.screens.homeScreen.components.*;
 
@@ -57,11 +58,11 @@ class HomeScreen : Screen {
         val navigator: Navigator = LocalNavigator.currentOrThrow
         val vm = rememberScreenModel { HomeViewModel() }
         var showSetting by remember { mutableStateOf(false) }
-        var selectedIndex by remember { mutableIntStateOf(2) }
+        var selectedIndex by remember { mutableIntStateOf(0) }
 //        "本地", "发现", "在线
         val tabs = listOf(Tabs("本地","local"),Tabs("在线","online"))
 
-        val pagerState = rememberPagerState(pageCount = { tabs.size }, initialPage = 2)
+        val pagerState = rememberPagerState(pageCount = { tabs.size }, initialPage = selectedIndex)
         val coroutineScope = rememberCoroutineScope()
         LaunchedEffect(pagerState.currentPage) {
             selectedIndex = pagerState.currentPage
@@ -90,7 +91,7 @@ class HomeScreen : Screen {
 
         Box(modifier = Modifier.fillMaxSize()) {
             Column(
-                modifier = Modifier// 🔥 核心魔法：处理旋转、缩放和透明度
+                modifier = Modifier// 🔥 处理旋转、缩放和透明度
                     .graphicsLayer {
                         transformOrigin = TransformOrigin(1f, 0.5f)
                         rotationY = mainRotation
@@ -134,11 +135,13 @@ class HomeScreen : Screen {
                             }
 
                             IconButton(onClick = {
-                                navigator.push(SearchScreen())
+                               navigator.push(DownloadScreen())
                             }) {
                                 Icon(
-                                    painter = painterResource(Res.drawable.search),
-                                    contentDescription = null
+                                    painter = painterResource(Res.drawable.download_line),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(15.dp),
+                                    tint = MaterialTheme.colorScheme.primary
                                 )
                             }
                         }
@@ -221,6 +224,7 @@ class HomeScreen : Screen {
         ) {
             navigator.push(FolderScreen())
         }
+
     }
 }
 
@@ -254,7 +258,7 @@ class HomeScreen : Screen {
                 iconSize = 20.dp,
                 fontSize = 12.sp,
                 onClick = {
-                    navigator.push(SongScreen("MyCollection", "我的收藏"))
+                    navigator.push(FavoriteScreen())
                 }
             )
 

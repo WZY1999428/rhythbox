@@ -5,20 +5,25 @@ import androidx.room.ConstructedBy
 import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.Transaction
+import androidx.room.TypeConverters
 import wzy.hkta.rhythbox.database.dao.*
 import wzy.hkta.rhythbox.expect.AppDatabaseConstructor
 
 @Database(
     entities = [SingerEntity::class, SongEntity::class, AlbumEntity::class, DirEntity::class, PlaylistSortEntity::class,
-        CollectEntity::class, LyricEntity::class, PlaylistEntity::class, PlaylistSongEntity::class,PlayHistoryEntity::class,SongCache::class],
-    version = 7,
+        CollectEntity::class, LyricEntity::class, PlaylistEntity::class, PlaylistSongEntity::class, PlayHistoryEntity::class,
+        SongCache::class, DownloadSongEntity::class],
+    version = 2,
     autoMigrations = [
-        AutoMigration(from = 6, to = 7)
+        AutoMigration(from = 1, to = 2)
     ]
 )
 
 
+
+
 @ConstructedBy(AppDatabaseConstructor::class)
+@TypeConverters(SongArtistConverter::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun getSingerDao(): SingerDao
     abstract fun getSongDao(): SongDao
@@ -27,6 +32,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun getCollectDao(): CollectDao
     abstract fun getPlaylistDao(): PlaylistDao
     abstract fun getPlayListSortDao(): PlaylistSortDao
+    abstract fun getDownloadDao(): DownloadDao
 
     @Transaction
     suspend fun deleteSongAndCleanUpTotally(songId: Long) {

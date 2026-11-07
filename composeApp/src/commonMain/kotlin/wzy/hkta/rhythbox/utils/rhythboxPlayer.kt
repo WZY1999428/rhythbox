@@ -38,11 +38,6 @@ object Rhythbox {
             "RhythboxPlayer 未初始化"
         }
 
-    val gemini: Client
-        get() = checkNotNull(_gemini) {
-            "gemini 未初始化"
-        }
-
     val openAi: OpenAI
         get() = checkNotNull(_openAi) {
             "openai 未初始化"
@@ -91,6 +86,6 @@ object Rhythbox {
 }
 
 
-fun isCurrentPlaying(activeUuid: String?, targetUuid: String?): Boolean {
-    return (activeUuid == targetUuid) && (activeUuid != null)
+fun isCurrentPlaying(activeId: String?, targetId: String?): Boolean {
+    return (activeId == targetId) && (activeId != null)
 }

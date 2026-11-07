@@ -1,12 +1,12 @@
 package wzy.hkta.rhythbox.utils
 
 import wzy.hkta.rhythbox.database.SongEntity
-import wzy.hkta.rhythbox.utils.fatchMusic.Song
+import wzy.hkta.rhythbox.fatchMusic.Song
 
 
 sealed interface SongListType {
-    data class LocalList(val songList: List<SongEntity>) : SongListType
-    data class NetworkList(val songList: List<Song>) : SongListType
+    data class LocalList(var songList: MutableList<SongEntity>) : SongListType
+    data class NetworkList(var songList: MutableList<Song>) : SongListType
 }
 
 sealed interface SongType {
@@ -21,7 +21,7 @@ data class SongInfo(
     val name : String,
     val artist : String?,
     val isLike : Boolean = false,
-    val uuid: String
+    val mediaId: String
 )
 
 
@@ -35,7 +35,7 @@ data class SongInfo(
                 name = song.song.name,
                 artist = song.song.artist,
                 isLike = song.song.isLike,
-                uuid = song.song.uuid!!
+                mediaId = song.song.mediaId!!
             )
         }
 
@@ -44,7 +44,8 @@ data class SongInfo(
                 id = song.song.id,
                 cover = song.song.cover,
                 name = song.song.title,
-                uuid = song.song.uuid!!,
+                isLike = song.song.isLike,
+                mediaId = song.song.mediaId!!,
                 artist = song.song.artists.joinToString("/") { it.artistName }
             )
         }

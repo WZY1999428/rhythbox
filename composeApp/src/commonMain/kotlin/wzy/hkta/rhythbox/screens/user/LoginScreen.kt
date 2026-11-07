@@ -20,6 +20,15 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import cafe.adriel.voyager.core.model.ScreenModel
+import cafe.adriel.voyager.core.model.rememberScreenModel
+import cafe.adriel.voyager.core.model.screenModelScope
+import cafe.adriel.voyager.navigator.LocalNavigator
+import cafe.adriel.voyager.navigator.Navigator
+import cafe.adriel.voyager.navigator.currentOrThrow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
 import rhythbox.composeapp.generated.resources.Res
 import rhythbox.composeapp.generated.resources.email
@@ -27,22 +36,25 @@ import rhythbox.composeapp.generated.resources.lock
 import rhythbox.composeapp.generated.resources.music
 import rhythbox.composeapp.generated.resources.visibility
 import rhythbox.composeapp.generated.resources.visibility_off
+import wzy.hkta.rhythbox.utils.ToastManager
+import wzy.hkta.rhythbox.utils.UserManager
+import wzy.hkta.rhythbox.fatchMusic.FetchMusic
+import wzy.hkta.rhythbox.fatchMusic.LoginRequest
 
-private val CardBackground = Color(0xFF1B1D25)
-private val AccentColor = Color(0xFF9B7BFF)
-private val SecondaryText = Color(0xFF92939F)
+private val SecondaryText = Color.White
 
 class LoginScreen : Screen {
 
     @Composable
     override fun Content() {
+        val navigator = LocalNavigator.currentOrThrow
+        val vm = rememberScreenModel { LoginViewModel(navigator) }
 
-        var username by remember { mutableStateOf("") }
-        var password by remember { mutableStateOf("") }
+        var username by remember { mutableStateOf("15526225283") }
+        var password by remember { mutableStateOf("a7454796209") }
         var passwordVisible by remember { mutableStateOf(false) }
         var rememberLogin by remember { mutableStateOf(true) }
-        var loading by remember { mutableStateOf(false) }
-
+        val loading by vm.loading.collectAsState()
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -58,14 +70,13 @@ class LoginScreen : Screen {
                     .background(
                         Brush.radialGradient(
                             listOf(
-                                AccentColor.copy(alpha = 0.20f),
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.20f),
                                 Color.Transparent
                             )
                         ),
                         CircleShape
                     )
             )
-
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -237,7 +248,7 @@ class LoginScreen : Screen {
                             checked = rememberLogin,
                             onCheckedChange = { rememberLogin = it },
                             colors = CheckboxDefaults.colors(
-                                checkedColor = AccentColor
+                                checkedColor = MaterialTheme.colorScheme.primary
                             )
                         )
 
@@ -253,7 +264,7 @@ class LoginScreen : Screen {
                     // 登录按钮
                     Button(
                         onClick = {
-                            // TODO: 调用登录接口
+                            vm.login(LoginRequest(username, password))
                         },
                         enabled = username.isNotBlank() &&
                                 password.isNotBlank() &&
@@ -263,8 +274,8 @@ class LoginScreen : Screen {
                             .height(52.dp),
                         shape = RoundedCornerShape(14.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = AccentColor,
-                            disabledContainerColor = AccentColor.copy(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            disabledContainerColor = MaterialTheme.colorScheme.primary.copy(
                                 alpha = 0.35f
                             )
                         )
@@ -279,6 +290,7 @@ class LoginScreen : Screen {
                             Text(
                                 "登 录/注 册",
                                 fontSize = 16.sp,
+                                color = Color.White,
                                 fontWeight = FontWeight.Bold
                             )
                         }
@@ -299,11 +311,37 @@ class LoginScreen : Screen {
 
 @Composable
 private fun loginFieldColors() = OutlinedTextFieldDefaults.colors(
-    focusedBorderColor = AccentColor,
+    focusedBorderColor = MaterialTheme.colorScheme.primary,
     unfocusedBorderColor = Color(0xFF353743),
     focusedTextColor = Color.White,
     unfocusedTextColor = Color.White,
-    cursorColor = AccentColor,
+    cursorColor = MaterialTheme.colorScheme.primary,
     focusedContainerColor = Color(0xFF22242D),
     unfocusedContainerColor = Color(0xFF22242D)
 )
+
+
+private class LoginViewModel(val navigator: Navigator) : ScreenModel {
+    private val _loading = MutableStateFlow(false)
+
+    val loading = _loading.asStateFlow()
+
+
+    fun login(params: LoginRequest) {
+        screenModelScope.launch {
+            try {
+                _loading.value = true
+                if(FetchMusic.user.login(params)){
+                    UserManager.getUserInfo()
+                    navigator.pop()
+                    ToastManager.show("登录成功")
+                }
+            } catch (err: Exception) {
+                ToastManager.show(err.message ?: "登录失败")
+                println(err)
+            } finally {
+                _loading.value = false
+            }
+        }
+    }
+}

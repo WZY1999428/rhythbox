@@ -20,6 +20,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -29,18 +30,23 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 import rhythbox.composeapp.generated.resources.Res
 import rhythbox.composeapp.generated.resources.*
 import wzy.hkta.rhythbox.components.CircularBarSpinner
 import wzy.hkta.rhythbox.expect.PlayMode
-import wzy.hkta.rhythbox.components.PlayerMenuBottomSheet
+import wzy.hkta.rhythbox.components.song.PlayerMenuBottomSheet
 import wzy.hkta.rhythbox.components.PlayerSeekBar
-import wzy.hkta.rhythbox.components.SelectPlaylist
+import wzy.hkta.rhythbox.components.playlist.SelectOnlinePlaylist
+import wzy.hkta.rhythbox.components.playlist.SelectPlaylist
+import wzy.hkta.rhythbox.components.song.SelectQuality
 import wzy.hkta.rhythbox.cssToColor
-import wzy.hkta.rhythbox.utils.fatchMusic.LyricData
+import wzy.hkta.rhythbox.utils.DownloadEngine
+import wzy.hkta.rhythbox.utils.SongType
 import wzy.hkta.rhythbox.utils.formatDuration
+import wzy.hkta.rhythbox.utils.getSongInfo
 
 @Composable
 internal fun PlayerBottom(
@@ -51,9 +57,8 @@ internal fun PlayerBottom(
     isPlay: Boolean,
     duration: Long,
     playMode: PlayMode,
-    showToolbar: Boolean = false,
     togglePlay: () -> Unit,
-    isLike: Boolean = false,
+    songType: SongType? = null,
     lyricsCount: Int? = null,
     prev: () -> Unit,
     next: () -> Unit,
@@ -66,6 +71,9 @@ internal fun PlayerBottom(
 ) {
     var showBottomSheet by rememberSaveable { mutableStateOf(false) }
     var showSelectPlaylist by rememberSaveable { mutableStateOf(false) }
+    var showSelectQuality by rememberSaveable { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    val songInfo = getSongInfo(songType)
 
     Box(
         modifier = Modifier.fillMaxWidth().then(modifier)
@@ -76,12 +84,13 @@ internal fun PlayerBottom(
                 .padding(horizontal = 10.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            if (showToolbar) {
+            if (songType != null) {
                 Row(
                     modifier = Modifier.width(240.dp).height(40.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    val isLike = songInfo?.isLike ?: false
                     ToolbarBtn(
                         if (isLike) Res.drawable.like_pink else Res.drawable.like_grey,
                         tint = if (isLike) "#e74c3c".cssToColor() else Color.White
@@ -93,8 +102,15 @@ internal fun PlayerBottom(
                         ) { openLyric?.invoke() }
                     }
                     ToolbarBtn(Res.drawable.ring) { onRing?.invoke() }
-                    ToolbarBtn(Res.drawable.folder_plus) { showSelectPlaylist = true }
-                    ToolbarBtn(Res.drawable.share) {}
+                    if (songType is SongType.Network) {
+                        ToolbarBtn(Res.drawable.download_line) {
+                            showSelectQuality = true
+                        }
+                    }
+
+                    ToolbarBtn(Res.drawable.folder_plus) {
+                        showSelectPlaylist = true
+                    }
                 }
             }
 
@@ -189,20 +205,56 @@ internal fun PlayerBottom(
         }
     }
 
-    SelectPlaylist(
-        show = showSelectPlaylist,
-        onCancel = { showSelectPlaylist = false },
-        onConfirm = {
-            onSelectFolder?.invoke(it)
-            showSelectPlaylist = false
+
+    when (songType) {
+        is SongType.Network -> {
+            SelectOnlinePlaylist(
+                songId = songType.song.id,
+                show = showSelectPlaylist,
+                onDismissRequest = { showSelectPlaylist = false },
+            )
         }
-    )
+
+        is SongType.Local -> {
+            SelectPlaylist(
+                show = showSelectPlaylist,
+                onDismissRequest = { showSelectPlaylist = false },
+                onConfirm = {
+                    onSelectFolder?.invoke(it)
+                    showSelectPlaylist = false
+                }
+            )
+        }
+
+        else -> {}
+    }
+
+
+
+    songInfo?.let {
+        SelectQuality(
+            show = showSelectQuality,
+            songId = it.id,
+            onDismissRequest = { showSelectQuality = false },
+            onConfirm = { selected ->
+                scope.launch {
+                    try {
+                        if (songType is SongType.Network) {
+                            val status = DownloadEngine.addTask(songType.song, selected)
+                            println(status)
+                        }
+                    } catch (e: Exception) {
+                        println("error: $e")
+                    }
+                }
+                showSelectQuality = false
+            }
+        )
+    }
 
     PlayerMenuBottomSheet(
         show = showBottomSheet,
-        onDismissRequest = {
-            showBottomSheet = false
-        }
+        onDismissRequest = { showBottomSheet = false }
     )
 }
 

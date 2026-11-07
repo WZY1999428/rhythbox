@@ -5,22 +5,33 @@ import com.linroid.ketch.api.DownloadRequest
 import com.linroid.ketch.api.DownloadState
 import com.linroid.ketch.api.DownloadTask
 import com.linroid.ketch.core.Ketch
-import com.linroid.ketch.engine.KtorHttpEngine
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import wzy.hkta.rhythbox.database.DownloadSongEntity
+import wzy.hkta.rhythbox.database.dao.DownloadDao
+import wzy.hkta.rhythbox.fatchMusic.MUSIC_BASE_URL
+import wzy.hkta.rhythbox.fatchMusic.Song
+import wzy.hkta.rhythbox.fatchMusic.SongAudioItem
+import kotlin.String
+
+enum class AddTaskState {
+    Success,
+    Exists,
+}
 
 object DownloadEngine {
 
-
+    private var _downloadDao: DownloadDao? = null
     private var _ketch: Ketch? = null
+    private var savePath = ""
 
     val ketch get() = _ketch ?: error("DownloadEngine 尚未初始化")
+    val downloadDao get() = _downloadDao ?: error("_downloadDao 尚未初始化")
 
     @OptIn(ExperimentalCoroutinesApi::class)
     fun observeTasks(): Flow<List<Pair<DownloadTask, DownloadState>>> =
@@ -40,8 +51,10 @@ object DownloadEngine {
     val tasks: StateFlow<List<DownloadTask>> get() = ketch.tasks
 
 
-    fun initEngine(engine: Ketch) {
+    fun initEngine(engine: Ketch, path: String) {
         _ketch = engine
+        savePath = path
+        _downloadDao = Rhythbox.dataBase.getDownloadDao()
     }
 
     /**
@@ -54,19 +67,44 @@ object DownloadEngine {
     /**
      * 添加下载任务
      *
-     * @param url 下载地址
-     * @param destination 文件保存路径
+     * @param wzy.hkta.rhythbox.utils.fatchMusic.Song 下载地址
      */
     suspend fun addTask(
-        url: String,
-        destination: String
-    ): DownloadTask {
-        return ketch.download(
-            DownloadRequest(
+        song: Song,
+        songAudioItem: SongAudioItem,
+        overwrite: Boolean = false
+    ): AddTaskState {
+//        val exists = downloadDao.exists(song.id)
+//        if (exists && !overwrite) {
+//            return AddTaskState.Exists
+//        }
+        val filePath = "$savePath/${songAudioItem.originalName}"
+        val url ="$MUSIC_BASE_URL/${songAudioItem.url}"
+        println("filePathfilePath $filePath")
+        downloadDao.upsert(
+            DownloadSongEntity(
+                songId = song.id,
                 url = url,
-                destination = Destination(destination)
+                filePath = filePath,
+                title = song.title,
+                duration = song.duration,
+                isLike = song.isLike,
+                mvUrl = song.mvUrl,
+                cover = song.cover,
+                mediaId = song.mediaId,
+                originalName = songAudioItem.originalName,
+                filename = songAudioItem.filename,
+                artists = song.artists,
             )
         )
+
+        ketch.download(
+            DownloadRequest(
+                url = url,
+                destination = Destination(filePath)
+            )
+        )
+        return AddTaskState.Success
     }
 
     /**

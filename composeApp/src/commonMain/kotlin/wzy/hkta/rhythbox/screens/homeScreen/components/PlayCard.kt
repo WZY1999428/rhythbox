@@ -78,7 +78,7 @@ import wzy.hkta.rhythbox.utils.marqueeText
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(300.dp)
+                .height(350.dp)
                 .background(
                     Brush.linearGradient(
                         colorStops = arrayOf(

@@ -37,7 +37,7 @@ import rhythbox.composeapp.generated.resources.song
 import wzy.hkta.rhythbox.database.SongEntity
 import wzy.hkta.rhythbox.expect.editSongInfo
 import wzy.hkta.rhythbox.utils.Rhythbox
-import wzy.hkta.rhythbox.utils.SnackbarManager
+import wzy.hkta.rhythbox.utils.ToastManager
 import wzy.hkta.rhythbox.utils.SongType
 
 class SongMetadataScreen(val id: Long) : Screen {
@@ -135,7 +135,7 @@ class SongMetadataScreen(val id: Long) : Screen {
                                 }
                                 navigator.pop() // 保存成功后乖乖退回上一页
                             }
-                            SnackbarManager.show("保存成功")
+                            ToastManager.show("保存成功")
                         } catch (e: Exception) {
                             navigator.pop() // 保存成功后乖乖退回上一页
                         }

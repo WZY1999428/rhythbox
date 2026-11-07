@@ -59,11 +59,13 @@ class LyricsScreen : Screen {
     @Composable
     override fun Content() {
         val player = Rhythbox.player
-        val currentTime = player.currentPosition.collectAsState()
-        val lyricList = player.lyricList.collectAsState()
-        val lyricStatus = player.lyricStatus.collectAsState()
+        val currentTime by player.currentPosition.collectAsState()
+        val lyricList by player.lyricList.collectAsState()
+        val lyricStatus by player.lyricStatus.collectAsState()
+        val playMediaId by player.playMediaId.collectAsState()
+
         val lyricInfoList = remember { mutableStateListOf<LyricInfo>() }
-        val currentSong = player.currentSong.collectAsState()
+        val currentSong by player.currentSong.collectAsState()
         val lyricOffsets = remember(lyricInfoList.size) {
             mutableStateListOf<Int>().apply {
                 repeat(lyricInfoList.size) { add(0) }
@@ -74,14 +76,14 @@ class LyricsScreen : Screen {
                 LazyListState()
             }
         }
-        val isSystemInDarkTheme = SettingManager.isSystemInDarkTheme.collectAsState()
+        val isSystemInDarkTheme by SettingManager.isSystemInDarkTheme.collectAsState()
         var showLyricsOffsetController by remember { mutableStateOf(false) }
         val pagerState = rememberPagerState(pageCount = { lyricInfoList.size })
 
-        LaunchedEffect(lyricList.value, currentSong.value) {
+        LaunchedEffect(lyricList, playMediaId) {
             showLyricsOffsetController = false
             lyricInfoList.clear()
-            val list = lyricList.value.mapNotNull {
+            val list = lyricList.mapNotNull {
                 parseLyric(it.content)?.let { lyric ->
                     LyricInfo(lyric, null)
                 }
@@ -91,7 +93,7 @@ class LyricsScreen : Screen {
         }
 
 
-        val songInfo = getSongInfo(currentSong.value)
+        val songInfo = getSongInfo(currentSong)
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
             val widthPx = constraints.maxWidth.toFloat()
             val heightPx = constraints.maxHeight.toFloat()
@@ -101,7 +103,7 @@ class LyricsScreen : Screen {
                     .fillMaxSize()
                     .background(
                         Brush.linearGradient(
-                            colorStops = when (isSystemInDarkTheme.value) {
+                            colorStops = when (isSystemInDarkTheme) {
                                 true -> PeachGradientStops
                                 false -> SavannaGradientStops
                             },
@@ -117,7 +119,7 @@ class LyricsScreen : Screen {
                     background = Color.Transparent,
                     iconColor = Color.White,
                 )
-                when (lyricStatus.value) {
+                when (lyricStatus) {
                     is Finished -> {
                         HorizontalPager(
                             state = pagerState,
@@ -134,7 +136,7 @@ class LyricsScreen : Screen {
                             val lazyListState = lazyListStates[page]
 
                             val currentIndex = lyric.lyric.indexOfLast {
-                                it.timeMillis <= (currentTime.value + lyricOffsets.getOrElse(page) { 0 })
+                                it.timeMillis <= (currentTime + lyricOffsets.getOrElse(page) { 0 })
                             }
                             LaunchedEffect(currentIndex, pagerState.currentPage) {
                                 if (pagerState.currentPage == page && currentIndex >= 0) {
@@ -157,7 +159,7 @@ class LyricsScreen : Screen {
 
                                     // 歌手信息
                                     Text(
-                                        text = lyricList.value[page].title,
+                                        text = lyricList[page].title,
                                         fontSize = 16.sp,
                                         lineHeight = 24.sp,
                                         color = Color.White.copy(alpha = 0.8f),
@@ -230,14 +232,14 @@ class LyricsScreen : Screen {
                                                     lyricOffsets[page] -= 500
                                                 }
                                                 val offset = lyricOffsets.getOrElse(page) { 0 }
-                                                updateLyricsOffset(songInfo!!.id, offset)
+                                                updateLyricsOffset(currentSong!!, offset)
                                             },
                                             onAdvanceClick = {
                                                 if (page in lyricOffsets.indices) {
                                                     lyricOffsets[page] += 500
                                                 }
                                                 val offset = lyricOffsets.getOrElse(page) { 0 }
-                                                updateLyricsOffset(songInfo!!.id, offset)
+                                                updateLyricsOffset(currentSong!!, offset)
                                             }
                                         )
                                     }
@@ -272,7 +274,7 @@ class LyricsScreen : Screen {
 
                     is LoadErr -> {
                         Text(
-                            text = (lyricStatus.value as LoadErr).msg,
+                            text = (lyricStatus as LoadErr).msg,
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Normal,
                             color = Color(0xFFEF5350),

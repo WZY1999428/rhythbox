@@ -59,7 +59,7 @@ import wzy.hkta.rhythbox.cssToColor
             Text(
                 text,
                 fontSize = fontSize,
-                color = "#BBB9B4".cssToColor()
+                color = MaterialTheme.colorScheme.primary
             )
         }
     }

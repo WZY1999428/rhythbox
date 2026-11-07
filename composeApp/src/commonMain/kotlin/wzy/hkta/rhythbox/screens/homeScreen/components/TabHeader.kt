@@ -8,6 +8,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -40,7 +41,7 @@ fun TabHeader(
     onTabSelected: (Int) -> Unit,
     modifier: Modifier = Modifier,
     height: Dp = 60.dp,
-    activeColor: Color = Color.Black,
+    activeColor: Color = MaterialTheme.colorScheme.primary,
     inactiveColor: Color = Color.Gray
 ) {
     Row(

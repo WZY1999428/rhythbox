@@ -5,6 +5,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
+import androidx.room.Upsert
 import kotlinx.coroutines.flow.Flow
 import wzy.hkta.rhythbox.database.PlaylistEntity
 import wzy.hkta.rhythbox.database.PlaylistSongEntity
@@ -20,9 +21,8 @@ interface PlaylistDao {
         FROM PlaylistEntity s WHERE id=:id
     """
     )
-    suspend fun get(id: Long): PlaylistEntity
+    suspend fun get(id: Long): PlaylistEntity?
 
-    @Transaction
     @Query("SELECT * FROM PlaylistEntity")
     fun getPlaylistWithSongs(): Flow<List<PlaylistWithSongs>>
 
@@ -39,6 +39,10 @@ interface PlaylistDao {
 
     @Query("DELETE FROM PlaylistEntity WHERE id = :id")
     suspend fun deletePlaylist(id: Long)
+
+
+    @Query("UPDATE PlaylistEntity SET 'name' = :name , 'describe' = :describe  WHERE id = :id ")
+    suspend fun updateByName(id: Long, name: String, describe: String)
 
     @Query("DELETE FROM PlaylistSongEntity WHERE playlistId = :id")
     suspend fun deletePlaylistSongs(id: Long)
@@ -61,14 +65,16 @@ interface PlaylistDao {
 }
 
 
-
 @Dao
 interface PlaylistSortDao {
     @Query("SELECT * FROM PlaylistSortEntity WHERE sortKey = :key ")
     fun get(key: String): Flow<PlaylistSortEntity?>
 
-    @Insert(onConflict = OnConflictStrategy.IGNORE)
-    suspend fun insert(item: PlaylistSortEntity)
+    @Query("SELECT * FROM PlaylistSortEntity WHERE sortKey = :key ")
+    suspend fun getInfo(key: String): PlaylistSortEntity?
+
+    @Upsert
+    suspend fun upsert(item: PlaylistSortEntity)
 
     @Query("DELETE FROM  PlaylistSortEntity WHERE sortKey = :key")
     suspend fun delete(key: String)

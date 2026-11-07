@@ -1,9 +1,12 @@
 package wzy.hkta.rhythbox.database
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
-import kotlinx.serialization.Serializable
+import wzy.hkta.rhythbox.fatchMusic.SongArtist
+import androidx.room.TypeConverter
+import kotlinx.serialization.json.Json
 
 @Entity(
     indices = [
@@ -24,14 +27,14 @@ data class SongEntity(
     val playCount: Int = 0,
     var isLike: Boolean = false,
     val createTime: Long = System.currentTimeMillis(),
-    var uuid: String? = null
+    var mediaId: String? = null
 )
 
 @Entity(indices = [Index(value = ["songId"], unique = true)])
 data class LyricEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
-    val songId: Long,
+    val songId: String,
     val lyric: String,
     val transLyric: String? = null,
     val offset: Int = 0
@@ -105,7 +108,6 @@ data class PlaylistSongEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
     val playlistId: Long,
-    val congCover: String?,
     val songId: Long,
 )
 
@@ -117,15 +119,6 @@ data class SongInfo(
 )
 
 
-object SortTypes {
-    const val BY_NAME = "BY_NAME_AES"
-    const val BY_NAME_DESC = "BY_NAME_DESC"
-    const val BY_TIME = "BY_TIME_AES"
-    const val BY_TIME_DESC = "BY_TIME_DESC"
-    const val BY_ARTIST = "BY_ARTIST"
-    const val BY_ARTIST_DESC = "BY_ARTIST_DESC"
-}
-
 @Entity(
     indices = [Index(value = ["sortKey"], unique = true)]
 )
@@ -133,9 +126,11 @@ data class PlaylistSortEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
     val sortKey: String,
-    val sortType: String= SortTypes.BY_NAME
+    @ColumnInfo(defaultValue = "'name'")
+    val sortName: String = "name",
+    @ColumnInfo(defaultValue = "'asc'")
+    val sortType: String = "asc",
 )
-
 
 
 @Entity(
@@ -156,3 +151,38 @@ data class SongCache(
     val url: String,
     val filePath: String
 )
+
+
+@Entity(
+    indices = [Index(value = ["url", "filePath"], unique = true)]
+)
+data class DownloadSongEntity(
+    @PrimaryKey(autoGenerate = true)
+    val id: Long = 0,
+    val songId: Long,
+    val url: String? = null,
+    val filePath: String? = null,
+    val title: String,
+    val duration: Long,
+    var isLike: Boolean = false,
+    val mvUrl: String? = null,
+    val cover: String,
+    val mediaId: String? = null,
+    val originalName: String,
+    val filename: String,
+    val artists: List<SongArtist> = emptyList()
+)
+
+
+class SongArtistConverter {
+
+    @TypeConverter
+    fun fromArtists(value: List<SongArtist>): String {
+        return Json.encodeToString(value)
+    }
+
+    @TypeConverter
+    fun toArtists(value: String): List<SongArtist> {
+        return Json.decodeFromString(value)
+    }
+}
