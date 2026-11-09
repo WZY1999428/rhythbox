@@ -5,6 +5,7 @@ import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
+import wzy.hkta.rhythbox.BuildConfig.MUSIC_BASE_URL
 import wzy.hkta.rhythbox.fatchMusic.FetchMusic.client
 import wzy.hkta.rhythbox.fatchMusic.FetchMusic.getOrJson
 import wzy.hkta.rhythbox.fatchMusic.FetchMusic.json

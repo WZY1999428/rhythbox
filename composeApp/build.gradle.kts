@@ -10,7 +10,9 @@ plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.composeMultiplatform)
+    alias(libs.plugins.buildconfig)
 }
+
 
 kotlin {
     androidTarget {
@@ -18,6 +20,7 @@ kotlin {
             jvmTarget.set(JvmTarget.JVM_11)
         }
     }
+
 
     jvm()
 
@@ -83,6 +86,14 @@ kotlin {
         }
     }
 }
+val packageId = "wzy.hkta.rhythbox"
+val isProd = project.findProperty("env") == "prod"
+buildConfig {
+    packageName(packageId)
+    buildConfigField("MUSIC_BASE_URL", if(isProd) "" else "")
+    buildConfigField("NET_EASE_CLOUD_MUSIC", "")
+    buildConfigField("DEEP_SEEK_KEY", "")
+}
 
 
 room {
@@ -90,11 +101,11 @@ room {
 }
 
 android {
-    namespace = "wzy.hkta.rhythbox"
+    namespace = packageId
     compileSdk = libs.versions.android.compileSdk.get().toInt()
 
     defaultConfig {
-        applicationId = "wzy.hkta.rhythbox"
+        applicationId = packageId
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 112
@@ -130,11 +141,11 @@ dependencies {
 
 compose.desktop {
     application {
-        mainClass = "wzy.hkta.rhythbox.MainKt"
+        mainClass = "${packageId}.MainKt"
 
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
-            packageName = "wzy.hkta.rhythbox"
+            packageName = packageId
             packageVersion = "1.1.2"
         }
     }

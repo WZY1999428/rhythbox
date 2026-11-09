@@ -46,10 +46,10 @@ import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
 import rhythbox.composeapp.generated.resources.Res
 import rhythbox.composeapp.generated.resources.download_line // 或者你的默认封面/加号图标
+import wzy.hkta.rhythbox.BuildConfig.MUSIC_BASE_URL
 import wzy.hkta.rhythbox.utils.ToastManager
 import wzy.hkta.rhythbox.fatchMusic.Cover
 import wzy.hkta.rhythbox.fatchMusic.FetchMusic
-import wzy.hkta.rhythbox.fatchMusic.MUSIC_BASE_URL
 import wzy.hkta.rhythbox.fatchMusic.PlaylistFields
 import wzy.hkta.rhythbox.fatchMusic.Song
 

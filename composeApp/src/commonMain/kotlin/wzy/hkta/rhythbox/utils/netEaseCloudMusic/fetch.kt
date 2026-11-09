@@ -12,6 +12,7 @@ import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.statement.bodyAsText
 import kotlinx.serialization.json.Json
+import wzy.hkta.rhythbox.BuildConfig.NET_EASE_CLOUD_MUSIC
 import wzy.hkta.rhythbox.expect.LyricStatus
 import wzy.hkta.rhythbox.database.LyricEntity
 import wzy.hkta.rhythbox.database.SongEntity
@@ -19,9 +20,6 @@ import wzy.hkta.rhythbox.utils.LyricInfo
 import wzy.hkta.rhythbox.utils.Rhythbox
 import wzy.hkta.rhythbox.utils.parseLyric
 import wzy.hkta.rhythbox.utils.retry
-
-
-const val BASE_URL = "https://music.163.com/api/";
 
 object NetEaseCloudMusic {
     private val json = Json {
@@ -32,7 +30,7 @@ object NetEaseCloudMusic {
         install(Logging)
         install(HttpCookies)
         defaultRequest {
-            url(BASE_URL)
+            url(NET_EASE_CLOUD_MUSIC)
             header(
                 "user-agent",
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36"

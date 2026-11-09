@@ -116,3 +116,5 @@ kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref =
 serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version = "2.3.21" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 androidx-room = { id = "androidx.room", version.ref = "room" }
+buildconfig = { id = "com.github.gmazzo.buildconfig", version = "6.1.2" }
+

@@ -59,6 +59,7 @@ import rhythbox.composeapp.generated.resources.Res
 import rhythbox.composeapp.generated.resources.logo
 import rhythbox.composeapp.generated.resources.more
 import rhythbox.composeapp.generated.resources.music
+import wzy.hkta.rhythbox.BuildConfig.MUSIC_BASE_URL
 import wzy.hkta.rhythbox.components.MAlertDialog
 import wzy.hkta.rhythbox.components.NavBar
 import wzy.hkta.rhythbox.components.playlist.EditOnlinePlaylist
@@ -71,7 +72,6 @@ import wzy.hkta.rhythbox.utils.Rhythbox
 import wzy.hkta.rhythbox.utils.Rhythbox.player
 import wzy.hkta.rhythbox.utils.ToastManager
 import wzy.hkta.rhythbox.fatchMusic.FetchMusic
-import wzy.hkta.rhythbox.fatchMusic.MUSIC_BASE_URL
 import wzy.hkta.rhythbox.fatchMusic.PlaylistFields
 import wzy.hkta.rhythbox.fatchMusic.Song
 import wzy.hkta.rhythbox.utils.SongType

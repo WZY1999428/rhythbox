@@ -62,6 +62,7 @@ import rhythbox.composeapp.generated.resources.right
 import rhythbox.composeapp.generated.resources.scanning2
 import rhythbox.composeapp.generated.resources.theme
 import rhythbox.composeapp.generated.resources.warn
+import wzy.hkta.rhythbox.BuildConfig.MUSIC_BASE_URL
 import wzy.hkta.rhythbox.components.MAlertDialog
 import wzy.hkta.rhythbox.screens.ScanMusicScreen
 import wzy.hkta.rhythbox.screens.user.LoginScreen
@@ -69,7 +70,6 @@ import wzy.hkta.rhythbox.screens.user.UserProfileScreen
 import wzy.hkta.rhythbox.utils.Rhythbox
 import wzy.hkta.rhythbox.utils.SettingManager
 import wzy.hkta.rhythbox.utils.UserManager
-import wzy.hkta.rhythbox.fatchMusic.MUSIC_BASE_URL
 import kotlin.Boolean
 
 @Composable

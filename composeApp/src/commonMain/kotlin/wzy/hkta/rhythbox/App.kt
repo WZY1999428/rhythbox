@@ -55,7 +55,6 @@ private val SavannaBreezeScheme = lightColorScheme(
     onSurfaceVariant = SavannaBreezeTextOrIcon      // 卡片容器上的文字和图标
 )
 
-@OptIn(InternalVoyagerApi::class)
 @Composable
 fun App(
     rhythboxPlayer: RhythboxPlayer,

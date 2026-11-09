@@ -38,8 +38,8 @@ import org.jetbrains.compose.resources.painterResource
 import rhythbox.composeapp.generated.resources.Res
 import rhythbox.composeapp.generated.resources.logo
 import rhythbox.composeapp.generated.resources.plus_2
+import wzy.hkta.rhythbox.BuildConfig.MUSIC_BASE_URL
 import wzy.hkta.rhythbox.components.playlist.RhythboxPlaylistEmptyState
-import wzy.hkta.rhythbox.fatchMusic.MUSIC_BASE_URL
 import wzy.hkta.rhythbox.screens.playlist.PlaylistType
 import wzy.hkta.rhythbox.screens.homeScreen.HomeViewModel
 import wzy.hkta.rhythbox.screens.playlist.OnlineUserPlaylistSongScreen

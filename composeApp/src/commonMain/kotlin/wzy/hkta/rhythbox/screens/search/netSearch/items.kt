@@ -19,7 +19,7 @@ import rhythbox.composeapp.generated.resources.Res
 import rhythbox.composeapp.generated.resources.more
 import rhythbox.composeapp.generated.resources.music
 import rhythbox.composeapp.generated.resources.right
-import wzy.hkta.rhythbox.fatchMusic.MUSIC_BASE_URL
+import wzy.hkta.rhythbox.BuildConfig.MUSIC_BASE_URL
 
 /**
  * 1. 单曲项优化：贴合主流音乐软件的单曲排版，突出标题与副标题（歌手·专辑）

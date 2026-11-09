@@ -1,5 +1,6 @@
 package wzy.hkta.rhythbox
 
+import androidx.compose.runtime.Composable
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -28,4 +29,8 @@ actual class ScanMusic {
     actual fun reset() {}
     actual suspend fun save(paths: List<String>) {}
     actual fun openBrowser(url: String) {}
+}
+
+@Composable
+actual fun GetCover(cb: (String?) -> Unit) {
 }

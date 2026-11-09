@@ -39,6 +39,7 @@ import org.jetbrains.compose.resources.painterResource
 import rhythbox.composeapp.generated.resources.Res
 import rhythbox.composeapp.generated.resources.artist
 import rhythbox.composeapp.generated.resources.right
+import wzy.hkta.rhythbox.BuildConfig.MUSIC_BASE_URL
 import wzy.hkta.rhythbox.components.CalendarBottomSheet
 import wzy.hkta.rhythbox.components.CalendarSelectMode
 import wzy.hkta.rhythbox.components.Input
@@ -48,7 +49,6 @@ import wzy.hkta.rhythbox.components.Textarea
 import wzy.hkta.rhythbox.utils.ToastManager
 import wzy.hkta.rhythbox.utils.UserManager
 import wzy.hkta.rhythbox.fatchMusic.FetchMusic
-import wzy.hkta.rhythbox.fatchMusic.MUSIC_BASE_URL
 import wzy.hkta.rhythbox.fatchMusic.UserInfo
 
 class UserProfileScreen : Screen {

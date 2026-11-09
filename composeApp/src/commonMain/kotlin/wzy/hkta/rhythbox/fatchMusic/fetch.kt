@@ -17,12 +17,12 @@ import io.ktor.http.Headers
 import io.ktor.http.HttpHeaders
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
+import wzy.hkta.rhythbox.BuildConfig.MUSIC_BASE_URL
 import wzy.hkta.rhythbox.utils.UserManager
 import wzy.hkta.rhythbox.utils.generateNetMediaId
 import wzy.hkta.rhythbox.utils.UserManager.getToken
 
-//const val MUSIC_BASE_URL = "http://192.168.0.195:8848"
-const val MUSIC_BASE_URL = "http://www.hkta.cc:8081"
+
 
 object FetchMusic {
     val json = Json {
@@ -62,6 +62,8 @@ object FetchMusic {
                 UserManager.removeToken()
                 throw Exception(msg)
             }
+
+
             throw Exception(res.message)
         }
     }
