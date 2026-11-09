@@ -82,8 +82,8 @@ import wzy.hkta.rhythbox.screens.SongMetadataScreen
 import wzy.hkta.rhythbox.screens.song.SongScreen
 import wzy.hkta.rhythbox.utils.Rhythbox
 import wzy.hkta.rhythbox.utils.Rhythbox.player
+import wzy.hkta.rhythbox.utils.SongType
 import wzy.hkta.rhythbox.utils.ToastManager
-import wzy.hkta.rhythbox.utils.SongListType
 import wzy.hkta.rhythbox.utils.formatDate
 import wzy.hkta.rhythbox.utils.generateMediaId
 import wzy.hkta.rhythbox.utils.isCurrentPlaying
@@ -119,7 +119,7 @@ class PlaylistSongScreen(
         var showSongBottomSheet by remember { mutableStateOf(false) }
         var playlistInfoBottomSheet by remember { mutableStateOf(false) }
         var showSortSongBottomSheet by remember { mutableStateOf(false) }
-        var selectSong by remember { mutableStateOf<SongEntity?>(null) }
+        var selectSong by remember { mutableStateOf<SongType?>(null) }
 
         val info = vm.info.collectAsState()
         val songList = vm.songList.collectAsState()
@@ -252,7 +252,7 @@ class PlaylistSongScreen(
                 songName = selectSong!!.name,
                 cover = selectSong!!.cover,
                 songId = selectSong!!.id,
-                artistName = selectSong!!.artist ?: "未知歌手",
+                artistName = selectSong!!.artist,
                 onEdit = { navigator.push(SongMetadataScreen(selectSong!!.id)) },
                 onDismissRequest = { showSongBottomSheet = false },
                 onDeleteClick = {
@@ -266,14 +266,13 @@ class PlaylistSongScreen(
         MAlertDialog(
             show = showAlertDialog,
             title = "提示",
-            content = "确定要删除此歌单吗",
             onCancel = { showAlertDialog = false },
             onConfirm = {
                 vm.deletePlaylist()
                 showAlertDialog = false
                 showEditSheet = false
             }
-        )
+        ) { Text("确定要删除此歌单吗") }
 
         if (type == PlaylistType.PLAYLIST) {
             playlistInfo?.let { info ->
@@ -392,7 +391,16 @@ class PlaylistSongModel(
         }
         _sortEntity.value = sortConfig
         songs.map { rawList ->
-            val list = rawList.map { song -> song.copy(mediaId = generateMediaId(key, song)) }
+            val list = rawList.map { song ->
+                SongType.Local(
+                    song.copy(
+                        mediaId = generateMediaId(
+                            key,
+                            song
+                        )
+                    )
+                )
+            }
             sortSong(list, sortConfig.sortName, sortConfig.sortType)
         }
     }.onEach {
@@ -417,7 +425,7 @@ class PlaylistSongModel(
 
     fun play(index: Int = 0) {
         player.let { p ->
-            p.resetMediaItems(key, SongListType.LocalList(songList.value.toMutableList()), false)
+            p.resetMediaItems(key, songList.value, false)
             p.prepare(index)
             p.play()
         }
@@ -426,11 +434,7 @@ class PlaylistSongModel(
     fun resetMediaItems() {
         screenModelScope.launch {
             delay(50.milliseconds)
-            player.resetMediaItems(
-                key,
-                SongListType.LocalList(songList.value.toMutableList()),
-                false
-            )
+            player.resetMediaItems(key, songList.value, false)
         }
     }
 

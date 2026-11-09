@@ -48,14 +48,13 @@ import wzy.hkta.rhythbox.components.song.RhythboxSongEmptyState
 import wzy.hkta.rhythbox.components.song.SongBottomSheet
 import wzy.hkta.rhythbox.components.song.SongItem
 import wzy.hkta.rhythbox.components.song.SortSongBottomSheet
-import wzy.hkta.rhythbox.cssToColor
 import wzy.hkta.rhythbox.database.PlaylistSortEntity
 import wzy.hkta.rhythbox.database.SongEntity
 import wzy.hkta.rhythbox.screens.ScanMusicScreen
 import wzy.hkta.rhythbox.screens.SongMetadataScreen
 import wzy.hkta.rhythbox.screens.playlist.PlaylistSongTopBar
 import wzy.hkta.rhythbox.utils.Rhythbox
-import wzy.hkta.rhythbox.utils.SongListType
+import wzy.hkta.rhythbox.utils.SongType
 import wzy.hkta.rhythbox.utils.generateMediaId
 import wzy.hkta.rhythbox.utils.isCurrentPlaying
 import wzy.hkta.rhythbox.utils.sortSong
@@ -79,7 +78,7 @@ class SongScreen(
         val isPlaying by player.isPlaying.collectAsState()
         var showSongBottomSheet by remember { mutableStateOf(false) }
         var showSortSongBottomSheet by remember { mutableStateOf(false) }
-        var selectSong by remember { mutableStateOf<SongEntity?>(null) }
+        var selectSong by remember { mutableStateOf<SongType?>(null) }
 
         Column(modifier = Modifier.fillMaxSize()) {
             NavBar(title = title) {
@@ -137,12 +136,15 @@ class SongScreen(
                     )
                 } else {
                     LazyColumn(modifier = Modifier.weight(1f)) {
-                        items(songList.size) {
+                        items(
+                            songList.size,
+                            key = { index -> songList[index].mediaId }
+                        ) {
                             val item = songList[it]
                             SongItem(
                                 no = it + 1,
                                 title = item.name,
-                                subTitle = item.artist ?: "",
+                                subTitle = item.artist,
                                 duration = item.duration,
                                 isPlay = isCurrentPlaying(playMediaId, item.mediaId),
                                 isPlaying = isPlaying,
@@ -212,13 +214,15 @@ private class SongViewModel(val key: String, dir: String?) : ScreenModel {
     ) { rawList, sort ->
         val sortConfig = sort ?: PlaylistSortEntity(sortKey = key)
         _sortEntity.value = sortConfig
-        val list = rawList.map { song -> song.copy(mediaId = generateMediaId(key, song)) }
-        sortSong(list, sortConfig.sortName, sortConfig.sortType)
+        val newList =
+            rawList.map { song -> SongType.Local(song.copy(mediaId = generateMediaId(key, song))) }
+        val sortList = sortSong(newList, sortConfig.sortName, sortConfig.sortType)
 
-    }.onEach {
         if (player.playKey.value == key) {
+            player.sortMediaItems(sortList)
             resetMediaItems()
         }
+        sortList
     }.stateIn(
         scope = screenModelScope,
         started = SharingStarted.WhileSubscribed(5000),
@@ -240,21 +244,16 @@ private class SongViewModel(val key: String, dir: String?) : ScreenModel {
     )
 
     fun play(index: Int = 0) {
-        player.let { p ->
-            p.resetMediaItems(key, SongListType.LocalList(songList.value.toMutableList()), false)
-            p.prepare(index)
-            p.play()
+        player.resetMediaItems(key, songList.value, false) {
+            player.prepare(index)
+            player.play()
         }
     }
 
     fun resetMediaItems() {
         screenModelScope.launch {
             delay(50.milliseconds)
-            player.resetMediaItems(
-                key,
-                SongListType.LocalList(songList.value.toMutableList()),
-                false
-            )
+            player.resetMediaItems(key, songList.value, false)
         }
     }
 }

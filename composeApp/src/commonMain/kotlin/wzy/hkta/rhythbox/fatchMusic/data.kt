@@ -54,7 +54,7 @@ data class SongArtist(
 )
 
 @Serializable
-data class Song(
+ data class Song(
     val id: Long,
     val url: String? = null,
     val cache: String? = null,
@@ -233,11 +233,11 @@ data class Cover(
 )
 
 @Serializable
-data class PlaylistFields(
+data class PlaylistFields<T>(
     val id: Long? = null,
     var title: String = "",
     var description: String,
     var cover: Cover? = null,
     val createdAt: String? = null,
-    val songList: List<Song> = emptyList(),
+    val songList: List<T> = emptyList(),
 )

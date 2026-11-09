@@ -35,6 +35,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import cafe.adriel.voyager.core.model.rememberScreenModel
 import com.google.protobuf.LazyStringArrayList.emptyList
 import kotlinx.coroutines.launch
+import wzy.hkta.rhythbox.components.BottomControl
 import wzy.hkta.rhythbox.components.Tabs
 import wzy.hkta.rhythbox.screens.search.EnhancedSearchBar
 import wzy.hkta.rhythbox.screens.search.netSearch.tabScreen.AlbumList
@@ -42,6 +43,7 @@ import wzy.hkta.rhythbox.screens.search.netSearch.tabScreen.ComplexList
 import wzy.hkta.rhythbox.screens.search.netSearch.tabScreen.PlaylistList
 import wzy.hkta.rhythbox.screens.search.netSearch.tabScreen.ArtistList
 import wzy.hkta.rhythbox.screens.search.netSearch.tabScreen.SingleList
+import wzy.hkta.rhythbox.utils.Rhythbox
 import wzy.hkta.rhythbox.utils.StorageManager
 
 class OnlineSearchScreen : Screen {
@@ -54,9 +56,9 @@ class OnlineSearchScreen : Screen {
         val showSearchDiscovery by vm.showSearchDiscovery.collectAsState()
         val vmKeyword by vm.keyword.collectAsState()
         val tabs = listOf("综合", "单曲", "歌单", "歌手", "专辑")
-
         // 1. 只使用 pagerState 作为唯一的数据源
         val pagerState = rememberPagerState(pageCount = { tabs.size })
+        val playKey by Rhythbox.player.playKey.collectAsState()
         val coroutineScope = rememberCoroutineScope() // 用于协程切换 Page
 
         Column(modifier = Modifier.fillMaxSize()) {
@@ -145,6 +147,9 @@ class OnlineSearchScreen : Screen {
                             3 -> ArtistList(vm, navigator)
                             4 -> AlbumList(vm, navigator)
                         }
+                    }
+                    playKey?.let {
+                        BottomControl()
                     }
                 }
             }

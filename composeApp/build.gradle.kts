@@ -97,8 +97,8 @@ android {
         applicationId = "wzy.hkta.rhythbox"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 1
-        versionName = "1.1.1"
+        versionCode = 112
+        versionName = "1.1.2"
     }
     packaging {
         resources {
@@ -135,7 +135,7 @@ compose.desktop {
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "wzy.hkta.rhythbox"
-            packageVersion = "1.1.1"
+            packageVersion = "1.1.2"
         }
     }
 }

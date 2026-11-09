@@ -26,6 +26,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -41,11 +45,15 @@ import rhythbox.composeapp.generated.resources.Res
 import rhythbox.composeapp.generated.resources.music
 import rhythbox.composeapp.generated.resources.leaderboard
 import rhythbox.composeapp.generated.resources.classify
+import rhythbox.composeapp.generated.resources.more
 import rhythbox.composeapp.generated.resources.recently
+import wzy.hkta.rhythbox.components.song.OnlineSongBottomSheet
+import wzy.hkta.rhythbox.screens.artist.OnlineArtistSongScreen
 import wzy.hkta.rhythbox.screens.playlist.PlaylistScreen
 import wzy.hkta.rhythbox.screens.playlist.PlaylistSquareScreen
 import wzy.hkta.rhythbox.screens.song.OnlineSongScreen
 import wzy.hkta.rhythbox.screens.search.netSearch.OnlineSearchScreen
+import wzy.hkta.rhythbox.utils.SongType
 
 private data class Playlist(
     val title: String,
@@ -64,6 +72,10 @@ fun OnlineScreen(
     val banners = viewModel.banner.collectAsState()
     val isRefreshing = viewModel.isRefreshing.collectAsState()
     val songList = viewModel.songList.collectAsState()
+
+    var showSongBottomSheet by remember { mutableStateOf(false) }
+    var selectSong by remember { mutableStateOf<SongType?>(null) }
+
     val playlists = listOf(
         Playlist("每日推荐", "每日推荐歌曲", "dailyRecommend"),
         Playlist("华语精选", "精选华语热门歌曲", "chinese"),
@@ -346,7 +358,6 @@ fun OnlineScreen(
                         subtitle = "最近大家都在听",
                         accent = accent,
                         onMore = {
-                            // TODO 查看更多新歌
                             navigator.push(OnlineSongScreen("hot", "热门新歌"))
                         }
                     )
@@ -354,13 +365,13 @@ fun OnlineScreen(
                     Column(
                         verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        songList.value.forEach { song ->
+                        songList.value.forEachIndexed { index, song ->
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clip(RoundedCornerShape(14.dp))
                                     .clickable {
-                                        // TODO 播放歌曲
+                                        viewModel.playNewHotSong(index, "热门新歌_hot")
                                     }
                                     .padding(8.dp),
                                 verticalAlignment = Alignment.CenterVertically
@@ -382,7 +393,7 @@ fun OnlineScreen(
                                         Arrangement.spacedBy(5.dp)
                                 ) {
                                     Text(
-                                        text = song.title,
+                                        text = song.name,
                                         color = Color.Black,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis,
@@ -390,25 +401,45 @@ fun OnlineScreen(
                                         fontWeight = FontWeight.Medium
                                     )
                                     Text(
-                                        text = song.artists.joinToString(",") { it.artistName },
+                                        text = song.artist,
                                         color = textSecondary,
                                         fontSize = 12.sp
                                     )
                                 }
 
-                                Text(
-                                    text = "⋯",
-                                    color = textSecondary,
-                                    fontSize = 24.sp,
-                                    modifier = Modifier.padding(
-                                        horizontal = 8.dp
+
+                                IconButton(onClick = {
+                                    selectSong = song
+                                    showSongBottomSheet = true
+                                }) {
+                                    Icon(
+                                        painter = painterResource(Res.drawable.more),
+                                        contentDescription = null,
+                                        tint = textSecondary,
+                                        modifier = Modifier.size(24.dp)
                                     )
-                                )
+                                }
                             }
                         }
                     }
                 }
             }
+        }
+
+        selectSong?.let { info ->
+            OnlineSongBottomSheet(
+                show = showSongBottomSheet,
+                songId = info.id,
+                songName = info.name,
+                cover = info.cover,
+                artists = info.artists!!,
+                isLike = info.isLike,
+                onArtistClick = { artistId, artistName ->
+                    showSongBottomSheet = false
+                    navigator.push(OnlineArtistSongScreen(artistId, artistName))
+                },
+                onDismissRequest = { showSongBottomSheet = false },
+            )
         }
     }
 

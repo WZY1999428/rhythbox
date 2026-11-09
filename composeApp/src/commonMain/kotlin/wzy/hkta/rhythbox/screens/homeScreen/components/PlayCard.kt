@@ -38,9 +38,7 @@ import rhythbox.composeapp.generated.resources.logo
 import wzy.hkta.rhythbox.expect.LyricStatus
 import wzy.hkta.rhythbox.expect.LyricStatus.*
 import wzy.hkta.rhythbox.components.PlayerSeekBar
-import wzy.hkta.rhythbox.database.SongEntity
 import wzy.hkta.rhythbox.utils.SongType
-import wzy.hkta.rhythbox.utils.getSongInfo
 import wzy.hkta.rhythbox.utils.marqueeText
 
 @Composable
@@ -93,7 +91,6 @@ import wzy.hkta.rhythbox.utils.marqueeText
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            val songInfo= getSongInfo(currentSong)
             Surface(
                 modifier = Modifier.size(100.dp),
                 shape = RoundedCornerShape(666.dp),
@@ -101,7 +98,7 @@ import wzy.hkta.rhythbox.utils.marqueeText
                 color = Color.Transparent,
                 shadowElevation = 8.dp
             ) {
-                if (songInfo?.cover == null) {
+                if (currentSong?.cover == null) {
                     Image(
                         contentDescription = null,
                         painter = painterResource(Res.drawable.logo),
@@ -109,7 +106,7 @@ import wzy.hkta.rhythbox.utils.marqueeText
                     )
                 } else {
                     AsyncImage(
-                        model = songInfo.cover,
+                        model = currentSong.cover,
                         contentDescription = null,
                         modifier = Modifier.fillMaxSize()
                     )
@@ -121,7 +118,7 @@ import wzy.hkta.rhythbox.utils.marqueeText
 
 
             Text(
-                songInfo?.name?: "乐动盒",
+                currentSong?.name?: "乐动盒",
                 modifier = Modifier.marqueeText(),
                 fontSize = 18.sp,
                 maxLines = 1,
@@ -130,7 +127,7 @@ import wzy.hkta.rhythbox.utils.marqueeText
             )
             Spacer(modifier = Modifier.height(10.dp))
             Text(
-                songInfo?.artist ?: "",
+                currentSong?.artist ?: "",
                 color = Color.Gray,
                 fontSize = 14.sp
             )

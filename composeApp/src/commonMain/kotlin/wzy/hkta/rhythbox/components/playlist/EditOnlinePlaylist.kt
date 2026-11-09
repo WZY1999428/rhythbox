@@ -51,6 +51,7 @@ import wzy.hkta.rhythbox.fatchMusic.Cover
 import wzy.hkta.rhythbox.fatchMusic.FetchMusic
 import wzy.hkta.rhythbox.fatchMusic.MUSIC_BASE_URL
 import wzy.hkta.rhythbox.fatchMusic.PlaylistFields
+import wzy.hkta.rhythbox.fatchMusic.Song
 
 
 @Composable
@@ -60,7 +61,7 @@ fun EditOnlinePlaylist(
     onCancel: () -> Unit,
     onSuccess: () -> Unit = {}
 ) {
-    var playlistFields by remember { mutableStateOf(PlaylistFields(title = "", description = "")) }
+    var playlistFields by remember { mutableStateOf(PlaylistFields<Song>(title = "", description = "")) }
     var loading by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val imageCropper = rememberImageCropper()

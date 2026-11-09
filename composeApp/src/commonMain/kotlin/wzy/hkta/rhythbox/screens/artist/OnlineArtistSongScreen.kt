@@ -72,10 +72,10 @@ import wzy.hkta.rhythbox.database.PlayHistoryEntity
 import wzy.hkta.rhythbox.database.PlaylistSortEntity
 import wzy.hkta.rhythbox.screens.album.OnlineAlbumScreen
 import wzy.hkta.rhythbox.utils.Rhythbox
-import wzy.hkta.rhythbox.utils.SongListType
 import wzy.hkta.rhythbox.fatchMusic.Artist
 import wzy.hkta.rhythbox.fatchMusic.FetchMusic
 import wzy.hkta.rhythbox.fatchMusic.Song
+import wzy.hkta.rhythbox.utils.SongType
 import wzy.hkta.rhythbox.utils.isCurrentPlaying
 import wzy.hkta.rhythbox.utils.sortSong
 
@@ -100,7 +100,7 @@ class OnlineArtistSongScreen(
 
         var showSongBottomSheet by remember { mutableStateOf(false) }
         var showSortSongBottomSheet by remember { mutableStateOf(false) }
-        var selected by remember { mutableStateOf<Song?>(null) }
+        var selected by remember { mutableStateOf<SongType?>(null) }
         LaunchedEffect(artistId) {
             vm.getData()
         }
@@ -196,8 +196,8 @@ class OnlineArtistSongScreen(
                         isPlay = isCurrentPlaying(playMediaId.value, song.mediaId),
                         isPlaying = isPlaying.value,
                         no = index + 1,
-                        title = song.title,
-                        subTitle = song.artists.joinToString("/") { it.artistName },
+                        title = song.name,
+                        subTitle = song.artist ?: "",
                         duration = song.duration,
                         onMoreClick = {
                             selected = song
@@ -227,8 +227,8 @@ class OnlineArtistSongScreen(
             OnlineSongBottomSheet(
                 show = showSongBottomSheet,
                 songId = selected!!.id,
-                artists = selected!!.artists,
-                songName = selected!!.title,
+                artists = selected!!.artists!!,
+                songName = selected!!.name,
                 cover = selected!!.cover,
                 onArtistClick = { artistId, artistName ->
                     showSongBottomSheet = false
@@ -398,7 +398,7 @@ private class OnlineSingerViewModel(val id: Long, val key: String) : ScreenModel
     private var songDao = Rhythbox.dataBase.getSongDao()
 
     private var _artistInfo = MutableStateFlow<Artist?>(null)
-    private var _songList = MutableStateFlow<MutableList<Song>>(mutableStateListOf())
+    private var _songList = MutableStateFlow<List<SongType>>(emptyList())
     private val _sortEntity = MutableStateFlow(PlaylistSortEntity(sortKey = key))
 
     val sortEntity = _sortEntity.asStateFlow()
@@ -420,7 +420,7 @@ private class OnlineSingerViewModel(val id: Long, val key: String) : ScreenModel
                 val songs = songFuture.await()
 
                 _artistInfo.value = artist
-                _songList.value = songs as MutableList<Song>
+                _songList.value = songs.map { SongType.Network(it) }
 
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -439,7 +439,7 @@ private class OnlineSingerViewModel(val id: Long, val key: String) : ScreenModel
             _sortEntity.value = sortConfig
             val list = sortSong(songs.toList(), sortConfig.sortName, sortConfig.sortType)
             if (player.playKey.value == key) {
-                player.sortMediaItems(SongListType.NetworkList(list.toMutableList()))
+                player.sortMediaItems(list)
             }
             list
         }
@@ -466,15 +466,9 @@ private class OnlineSingerViewModel(val id: Long, val key: String) : ScreenModel
             songDao.deleteOldPlayHistory()
             songDao.insertPlayHistory(PlayHistoryEntity(songId = id))
         }
-
-        player.let { p ->
-            p.resetMediaItems(
-                key,
-                SongListType.NetworkList(songList.value.toMutableList()),
-                true,
-                index
-            )
-            p.play()
+        player.resetMediaItems(key, songList.value, false) {
+            player.prepare(index)
+            player.play()
         }
     }
 

@@ -45,6 +45,7 @@ import wzy.hkta.rhythbox.screens.ScanMusicScreen
 import wzy.hkta.rhythbox.screens.SongMetadataScreen
 import wzy.hkta.rhythbox.screens.favorite.FavoriteViewModel
 import wzy.hkta.rhythbox.utils.Rhythbox
+import wzy.hkta.rhythbox.utils.SongType
 import wzy.hkta.rhythbox.utils.isCurrentPlaying
 
 @Composable
@@ -59,7 +60,7 @@ fun LocalSong(
     val isPlaying by player.isPlaying.collectAsState()
     var showSongBottomSheet by remember { mutableStateOf(false) }
     var showSortSongBottomSheet by remember { mutableStateOf(false) }
-    var selectSong by remember { mutableStateOf<SongEntity?>(null) }
+    var selectSong by remember { mutableStateOf<SongType?>(null) }
     val key = "favorite-local-song";
     Column(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.weight(1f)) {

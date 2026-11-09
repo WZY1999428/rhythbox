@@ -12,6 +12,8 @@ import wzy.hkta.rhythbox.fatchMusic.FetchMusic
 import wzy.hkta.rhythbox.fatchMusic.ListData
 import wzy.hkta.rhythbox.fatchMusic.Playlist
 import wzy.hkta.rhythbox.fatchMusic.Song
+import wzy.hkta.rhythbox.fatchMusic.toNetPlaylist
+import wzy.hkta.rhythbox.fatchMusic.toNetSongs
 import kotlin.collections.emptyList
 
 enum class SearchType {
@@ -57,7 +59,7 @@ class OnlineSearchViewModel : ScreenModel {
     val showSearchDiscovery = _showSearchDiscovery.asStateFlow()
 
 
-    fun  clearKeyword() {
+    fun clearKeyword() {
         _keyword.value = ""
     }
 
@@ -147,14 +149,15 @@ class OnlineSearchViewModel : ScreenModel {
                 SearchType.SONG -> loadPage(
                     pageIndex,
                     pageSize,
-                    type = "signle",
+                    type = "single",
                     { _songList.value = songList.value.copy(loading = it) }
                 ) { data ->
 
                     _songList.value = songList.value.copy(
-                        list = songList.value.list + data.list,
+                        list = songList.value.list + data.list.toNetSongs(),
                         total = data.total
                     )
+
                     _songList.value.list.size
                 }
 
@@ -202,7 +205,10 @@ class OnlineSearchViewModel : ScreenModel {
 
     fun searchComplex() {
         screenModelScope.launch {
-            _complex.value = FetchMusic.music.searchComplex(_keyword.value)
+            val data = FetchMusic.music.searchComplex(_keyword.value)
+            _complex.value= data.copy(
+                song = data.song.toNetSongs()
+            )
         }
     }
 

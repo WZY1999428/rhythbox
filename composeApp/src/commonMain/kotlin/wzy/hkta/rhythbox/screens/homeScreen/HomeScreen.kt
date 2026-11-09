@@ -42,7 +42,7 @@ import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
 import rhythbox.composeapp.generated.resources.*
 import wzy.hkta.rhythbox.components.BottomControl
-import wzy.hkta.rhythbox.screens.DownloadScreen
+import wzy.hkta.rhythbox.screens.download.DownloadScreen
 import wzy.hkta.rhythbox.screens.album.AlbumScreen
 import wzy.hkta.rhythbox.screens.FolderScreen
 import wzy.hkta.rhythbox.screens.artist.ArtistScreen

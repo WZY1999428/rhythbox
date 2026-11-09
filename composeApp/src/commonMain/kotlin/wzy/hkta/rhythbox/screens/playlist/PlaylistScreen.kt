@@ -32,7 +32,7 @@ class PlaylistScreen(
     @Composable
     override fun Content(){
         val navigator = LocalNavigator.currentOrThrow
-        val vm = rememberScreenModel(tag = "${title}_${id}") { PlaylistViewModel() }
+        val vm = rememberScreenModel(tag = "local-playlist-${title}_${id}") { PlaylistViewModel() }
          val playlist = vm.playlist.collectAsState()
         Column(
             modifier = Modifier.fillMaxSize()

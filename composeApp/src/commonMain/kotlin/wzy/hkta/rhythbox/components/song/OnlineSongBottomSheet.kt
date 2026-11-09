@@ -22,10 +22,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.jetbrains.compose.resources.painterResource
 import rhythbox.composeapp.generated.resources.Res
 import rhythbox.composeapp.generated.resources.collect
+import rhythbox.composeapp.generated.resources.delete
 import rhythbox.composeapp.generated.resources.download_line
 import rhythbox.composeapp.generated.resources.logo
 import rhythbox.composeapp.generated.resources.playlist
@@ -33,6 +36,9 @@ import rhythbox.composeapp.generated.resources.ring
 import wzy.hkta.rhythbox.components.playlist.SelectOnlinePlaylist
 import wzy.hkta.rhythbox.screens.album.ArtistName
 import wzy.hkta.rhythbox.fatchMusic.SongArtist
+import wzy.hkta.rhythbox.utils.Rhythbox
+import wzy.hkta.rhythbox.utils.ToastManager
+import wzy.hkta.rhythbox.utils.UserManager
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -45,10 +51,13 @@ fun OnlineSongBottomSheet(
     isLike: Boolean = false,
     onSetRingClick: () -> Unit = {},
     onDismissRequest: () -> Unit,
+    onDownload: (() -> Unit)? = null,
+    onLike: (() -> Unit)? = null,
+    onDeleteClick: (() -> Unit)? = null,
     onArtistClick: (Long, String) -> Unit,
 ) {
     var showSelectPlaylist by remember { mutableStateOf(false) }
-    val scope = rememberCoroutineScope()
+
     if (show) {
         ModalBottomSheet(
             dragHandle = {
@@ -126,22 +135,55 @@ fun OnlineSongBottomSheet(
                 HorizontalDivider(color = Color(0xFFFFB7A1).copy(alpha = 0.2f), thickness = 1.dp)
                 Spacer(modifier = Modifier.height(8.dp))
                 // 🛠️ 2. 操作功能列表（带图标的行组件）
-                BottomSheetActionRow(Res.drawable.download_line, "下载歌曲") {
-                    onDismissRequest()
-                }
-
-                BottomSheetActionRow(Res.drawable.playlist, "添加到歌单") {
-                    showSelectPlaylist = true
-                }
-                BottomSheetActionRow(Res.drawable.collect, if (isLike) "取消收藏" else "收藏歌曲") {
-                    scope.launch {
+                onDownload?.let { click ->
+                    BottomSheetActionRow(Res.drawable.download_line, "下载歌曲") {
+                        click()
+                        onDismissRequest()
                     }
                 }
 
+                UserManager.getToken()?.let {
+                    onLike?.let { click ->
+                        BottomSheetActionRow(
+                            Res.drawable.collect,
+                            if (isLike) "取消收藏" else "收藏歌曲"
+                        ) {
+                            click()
+                            onDismissRequest()
+                        }
+                    }
+
+                    BottomSheetActionRow(Res.drawable.playlist, "添加到歌单") {
+                        showSelectPlaylist = true
+                    }
+
+                }
+
                 BottomSheetActionRow(Res.drawable.ring, "设为铃声") { onSetRingClick() }
-
                 Spacer(modifier = Modifier.height(20.dp))
-
+                onDeleteClick?.let {
+                    // 🚨 3. 极具设计感的删除按钮
+                    Button(
+                        onClick = onDeleteClick,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFFFFF0EE),
+                            contentColor = Color(0xFFFF5252)
+                        ),
+                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
+                    ) {
+                        Icon(
+                            painterResource(Res.drawable.delete),
+                            contentDescription = "Delete",
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("删除这首歌曲", fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
             }
         }
     }

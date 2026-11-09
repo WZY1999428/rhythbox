@@ -30,12 +30,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 import rhythbox.composeapp.generated.resources.Res
 import rhythbox.composeapp.generated.resources.*
 import wzy.hkta.rhythbox.components.CircularBarSpinner
+import wzy.hkta.rhythbox.components.MAlertDialog
 import wzy.hkta.rhythbox.expect.PlayMode
 import wzy.hkta.rhythbox.components.song.PlayerMenuBottomSheet
 import wzy.hkta.rhythbox.components.PlayerSeekBar
@@ -43,10 +45,12 @@ import wzy.hkta.rhythbox.components.playlist.SelectOnlinePlaylist
 import wzy.hkta.rhythbox.components.playlist.SelectPlaylist
 import wzy.hkta.rhythbox.components.song.SelectQuality
 import wzy.hkta.rhythbox.cssToColor
+import wzy.hkta.rhythbox.fatchMusic.SongAudioItem
+import wzy.hkta.rhythbox.utils.AddTaskState
 import wzy.hkta.rhythbox.utils.DownloadEngine
 import wzy.hkta.rhythbox.utils.SongType
+import wzy.hkta.rhythbox.utils.ToastManager
 import wzy.hkta.rhythbox.utils.formatDuration
-import wzy.hkta.rhythbox.utils.getSongInfo
 
 @Composable
 internal fun PlayerBottom(
@@ -72,8 +76,9 @@ internal fun PlayerBottom(
     var showBottomSheet by rememberSaveable { mutableStateOf(false) }
     var showSelectPlaylist by rememberSaveable { mutableStateOf(false) }
     var showSelectQuality by rememberSaveable { mutableStateOf(false) }
+    var showAlert by rememberSaveable { mutableStateOf(false) }
+    var selectedAudio by rememberSaveable { mutableStateOf<SongAudioItem?>(null) }
     val scope = rememberCoroutineScope()
-    val songInfo = getSongInfo(songType)
 
     Box(
         modifier = Modifier.fillMaxWidth().then(modifier)
@@ -90,10 +95,9 @@ internal fun PlayerBottom(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    val isLike = songInfo?.isLike ?: false
                     ToolbarBtn(
-                        if (isLike) Res.drawable.like_pink else Res.drawable.like_grey,
-                        tint = if (isLike) "#e74c3c".cssToColor() else Color.White
+                        if (songType.isLike) Res.drawable.like_pink else Res.drawable.like_grey,
+                        tint = if (songType.isLike) "#e74c3c".cssToColor() else Color.White
                     ) { onLike?.invoke() }
 
                     if (lyricsCount != null && lyricsCount >= 1) {
@@ -231,26 +235,43 @@ internal fun PlayerBottom(
 
 
 
-    songInfo?.let {
+    songType?.let {
         SelectQuality(
             show = showSelectQuality,
             songId = it.id,
             onDismissRequest = { showSelectQuality = false },
             onConfirm = { selected ->
                 scope.launch {
-                    try {
-                        if (songType is SongType.Network) {
-                            val status = DownloadEngine.addTask(songType.song, selected)
-                            println(status)
+                    if (songType is SongType.Network) {
+                        val status = DownloadEngine.addTask(songType.song, selected, false)
+                        if (status == AddTaskState.Exists) {
+                            selectedAudio = selected
+                            showAlert = true
                         }
-                    } catch (e: Exception) {
-                        println("error: $e")
                     }
                 }
                 showSelectQuality = false
             }
         )
+
+
+        MAlertDialog(
+            show = showAlert,
+            title = "提示",
+            onCancel = { showAlert = false },
+            onConfirm = {
+                scope.launch {
+                    showAlert = false
+                    if (songType is SongType.Network) {
+                        DownloadEngine.addTask(songType.song, selectedAudio!!, true)
+                        ToastManager.show("添加成功")
+                    }
+                }
+            }
+        ) { Text("当前歌曲已存在下载，是否覆盖") }
     }
+
+
 
     PlayerMenuBottomSheet(
         show = showBottomSheet,

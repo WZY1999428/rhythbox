@@ -38,6 +38,7 @@ import wzy.hkta.rhythbox.utils.ToastManager
 import wzy.hkta.rhythbox.utils.UserManager
 import wzy.hkta.rhythbox.fatchMusic.FetchMusic
 import wzy.hkta.rhythbox.fatchMusic.PlaylistFields
+import wzy.hkta.rhythbox.fatchMusic.Song
 import kotlin.collections.emptyList
 
 @Composable
@@ -47,7 +48,7 @@ fun SelectOnlinePlaylist(
     onDismissRequest: () -> Unit,
 ) {
     var selected by remember { mutableLongStateOf(0L) }
-    var onlinePlayList by remember { mutableStateOf(emptyList<PlaylistFields>()) }
+    var onlinePlayList by remember { mutableStateOf(emptyList<PlaylistFields<Song>>()) }
     val scope = rememberCoroutineScope()
     LaunchedEffect(show) {
         if (show) {

@@ -1,5 +1,11 @@
 package wzy.hkta.rhythbox
 
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -7,32 +13,21 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.compose.ui.zIndex
+import cafe.adriel.voyager.core.annotation.InternalVoyagerApi
 import cafe.adriel.voyager.navigator.Navigator
-import cafe.adriel.voyager.transitions.SlideTransition
-import com.linroid.ketch.core.Ketch
+import cafe.adriel.voyager.transitions.ScreenTransition
+import com.linroid.ketch.api.DownloadState
 import wzy.hkta.rhythbox.components.Toast
-import wzy.hkta.rhythbox.database.AppDatabase
-import wzy.hkta.rhythbox.expect.FloatLyric
 import wzy.hkta.rhythbox.expect.RhythboxPlayer
-import wzy.hkta.rhythbox.expect.ScanMusic
 import wzy.hkta.rhythbox.screens.homeScreen.HomeScreen
 import wzy.hkta.rhythbox.theme.*
 import wzy.hkta.rhythbox.utils.DownloadEngine
@@ -60,6 +55,7 @@ private val SavannaBreezeScheme = lightColorScheme(
     onSurfaceVariant = SavannaBreezeTextOrIcon      // 卡片容器上的文字和图标
 )
 
+@OptIn(InternalVoyagerApi::class)
 @Composable
 fun App(
     rhythboxPlayer: RhythboxPlayer,
@@ -67,7 +63,6 @@ fun App(
     val show = remember { mutableStateOf(false) }
     val currentSong = rhythboxPlayer.currentSong.collectAsState()
     val playMediaId = rhythboxPlayer.playMediaId.collectAsState()
-
     val toastState = remember { SnackbarHostState() }
     val isSystemInDarkTheme = SettingManager.isSystemInDarkTheme.collectAsState()
 
@@ -75,6 +70,7 @@ fun App(
         ToastManager.bind(toastState)
         UserManager.getUserInfo()
         show.value = true
+        DownloadEngine.start()
     }
     LaunchedEffect(playMediaId.value, show.value) {
         if (!show.value) return@LaunchedEffect
@@ -98,7 +94,32 @@ fun App(
             ) {
                 Box(modifier = Modifier.weight(1f)) {
                     Navigator(HomeScreen()) { navigator ->
-                        SlideTransition(navigator)
+                        var lastKey = ""
+                        ScreenTransition(
+                            navigator = navigator,
+                            transition = {
+                                val lastItem = navigator.lastItem
+                                val event = navigator.lastEvent.name
+                                if (event == "Push") lastKey = lastItem.key
+                                if (lastKey == "playerScreen") {
+                                    slideInVertically(
+                                        initialOffsetY = { fullHeight -> fullHeight },
+                                        animationSpec = tween(300)
+                                    ) togetherWith slideOutVertically(
+                                        targetOffsetY = { fullHeight -> fullHeight },
+                                        animationSpec = tween(300)
+                                    )
+                                } else {
+                                    slideInHorizontally(
+                                        initialOffsetX = { fullWidth -> fullWidth },
+                                        animationSpec = tween(300)
+                                    ) togetherWith slideOutHorizontally(
+                                        targetOffsetX = { fullWidth -> -fullWidth },
+                                        animationSpec = tween(300)
+                                    )
+                                }
+                            }
+                        )
                     }
                     Toast(
                         hostState = toastState,

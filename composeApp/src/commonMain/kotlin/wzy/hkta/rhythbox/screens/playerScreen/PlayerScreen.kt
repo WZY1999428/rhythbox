@@ -31,15 +31,21 @@ import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import cafe.adriel.voyager.core.annotation.ExperimentalVoyagerApi
 import cafe.adriel.voyager.core.screen.Screen
 import org.jetbrains.compose.resources.painterResource
 import rhythbox.composeapp.generated.resources.Res
 import rhythbox.composeapp.generated.resources.logo
 import cafe.adriel.voyager.core.model.rememberScreenModel
+import cafe.adriel.voyager.core.screen.ScreenKey
+import cafe.adriel.voyager.core.screen.uniqueScreenKey
+import cafe.adriel.voyager.core.stack.StackEvent
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
+import cafe.adriel.voyager.transitions.ScreenTransition
 import coil3.compose.AsyncImage
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -53,11 +59,11 @@ import wzy.hkta.rhythbox.utils.Rhythbox
 import wzy.hkta.rhythbox.utils.SettingManager
 import wzy.hkta.rhythbox.utils.SongType
 import wzy.hkta.rhythbox.utils.ToastManager
-import wzy.hkta.rhythbox.utils.getSongInfo
 import wzy.hkta.rhythbox.utils.marqueeText
 
 
 class PlayerScreen : Screen {
+    override val key: ScreenKey get() = "playerScreen"
 
     @Composable
     override fun Content() {
@@ -87,7 +93,6 @@ class PlayerScreen : Screen {
                 }
             }
         }
-        val songInfo = getSongInfo(currentSong)
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
             val widthPx = constraints.maxWidth.toFloat()
             val heightPx = constraints.maxHeight.toFloat()
@@ -110,7 +115,7 @@ class PlayerScreen : Screen {
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     NavBar(
-                        title = songInfo?.name ?: "音乐盒",
+                        title = currentSong?.name ?: "音乐盒",
                         titleColor = Color.White,
                         background = Color.Transparent,
                         iconColor = Color.White,
@@ -130,7 +135,7 @@ class PlayerScreen : Screen {
                         shape = CircleShape,
                         shadowElevation = 6.dp,
                     ) {
-                        val cover = songInfo?.cover
+                        val cover = currentSong?.cover
                         when (cover.isNullOrBlank()) {
                             true -> Image(
                                 painter = painterResource(Res.drawable.logo),
@@ -148,7 +153,7 @@ class PlayerScreen : Screen {
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            songInfo?.name ?: "",
+                            currentSong?.name ?: "",
                             color = Color.White,
                             lineHeight = 80.sp,
                             textAlign = TextAlign.Center,
@@ -166,7 +171,7 @@ class PlayerScreen : Screen {
                         )
                         Spacer(modifier = Modifier.height(10.dp))
                         Text(
-                            songInfo?.artist ?: "",
+                            currentSong?.artist ?: "",
                             lineHeight = 50.sp,
                             color = Color.White,
                             fontSize = 24.sp,
@@ -207,10 +212,10 @@ class PlayerScreen : Screen {
                         onRing = { player.setRhythboxRingtone() },
                         onChangePlayMode = { player.onChangePlayMode() },
                         onLike = {
-                            vm.toggleCollect(currentSong!!, !(songInfo?.isLike ?: false))
+                            vm.toggleCollect(currentSong!!, !(currentSong?.isLike ?: false))
                         },
                         onSelectFolder = {
-                            vm.addFolderSong(it, songInfo!!.id)
+                            vm.addFolderSong(it, currentSong!!.id)
                         }
                     )
                 }
@@ -236,6 +241,7 @@ class PlayerScreen : Screen {
             }
         }
     }
+
 
 }
 

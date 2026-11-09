@@ -22,11 +22,11 @@ import androidx.compose.ui.unit.dp
 fun MAlertDialog(
     show: Boolean = false,
     title: String,
-    content: String,
     cancelText: String = "取消",
     confirmText: String = "确认",
     onConfirm: () -> Unit,
     onCancel: (() -> Unit)? = null,
+    content: (@Composable () -> Unit)? = {}
 ) {
     if (show) {
         BasicAlertDialog(
@@ -45,7 +45,7 @@ fun MAlertDialog(
                 ) {
                     Text(title)
                     Spacer(Modifier.height(10.dp))
-                    Text(content)
+                    content?.invoke()
                     Spacer(Modifier.height(20.dp))
                     Row(
                         horizontalArrangement = Arrangement.End,

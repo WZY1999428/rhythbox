@@ -1,18 +1,24 @@
 package wzy.hkta.rhythbox.database
 
 import androidx.room.ColumnInfo
+import androidx.room.Embedded
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import wzy.hkta.rhythbox.fatchMusic.SongArtist
 import androidx.room.TypeConverter
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import wzy.hkta.rhythbox.fatchMusic.Language
+import wzy.hkta.rhythbox.fatchMusic.Song
+import kotlin.Long
 
 @Entity(
     indices = [
         Index(value = ["path", "name", "size", "createTime"], unique = true)
     ]
 )
+@Serializable
 data class SongEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
@@ -152,26 +158,23 @@ data class SongCache(
     val filePath: String
 )
 
-
 @Entity(
-    indices = [Index(value = ["url", "filePath"], unique = true)]
+    indices = [Index(value = ["downloadPath"], unique = true)]
 )
 data class DownloadSongEntity(
     @PrimaryKey(autoGenerate = true)
-    val id: Long = 0,
-    val songId: Long,
-    val url: String? = null,
-    val filePath: String? = null,
-    val title: String,
-    val duration: Long,
-    var isLike: Boolean = false,
-    val mvUrl: String? = null,
-    val cover: String,
-    val mediaId: String? = null,
-    val originalName: String,
-    val filename: String,
-    val artists: List<SongArtist> = emptyList()
+    val dId: Long = 0,
+    val downloadPath: String, // 本地保存的绝对路径
+    val downloadStatus: Int = 0, //  下载状态等额外字段 0 进行中  1 完成 2 失败
+    @Embedded
+    val song: Song
 )
+
+fun DownloadSongEntity.toSong(): Song {
+    return this.song.copy(
+        cache = this.downloadPath
+    )
+}
 
 
 class SongArtistConverter {
@@ -183,6 +186,19 @@ class SongArtistConverter {
 
     @TypeConverter
     fun toArtists(value: String): List<SongArtist> {
+        return Json.decodeFromString(value)
+    }
+}
+
+class LanguageConverter {
+
+    @TypeConverter
+    fun fromLanguages(value: List<Language>): String {
+        return Json.encodeToString(value)
+    }
+
+    @TypeConverter
+    fun toLanguages(value: String): List<Language> {
         return Json.decodeFromString(value)
     }
 }

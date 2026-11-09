@@ -49,7 +49,6 @@ import wzy.hkta.rhythbox.theme.SavannaGradientStops
 import wzy.hkta.rhythbox.utils.LyricInfo
 import wzy.hkta.rhythbox.utils.Rhythbox
 import wzy.hkta.rhythbox.utils.SettingManager
-import wzy.hkta.rhythbox.utils.getSongInfo
 import wzy.hkta.rhythbox.utils.marqueeText
 import wzy.hkta.rhythbox.utils.parseLyric
 
@@ -93,7 +92,6 @@ class LyricsScreen : Screen {
         }
 
 
-        val songInfo = getSongInfo(currentSong)
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
             val widthPx = constraints.maxWidth.toFloat()
             val heightPx = constraints.maxHeight.toFloat()
@@ -114,7 +112,7 @@ class LyricsScreen : Screen {
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 NavBar(
-                    title = songInfo?.name ?: "",
+                    title = currentSong?.name ?: "",
                     titleColor = Color.White,
                     background = Color.Transparent,
                     iconColor = Color.White,

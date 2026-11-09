@@ -239,7 +239,9 @@ fun Setting(modifier: Modifier = Modifier, onClose: () -> Unit) {
         MAlertDialog(
             show = showAlertDialog,
             title = "隐私政策/用户协议",
-            content = """
+            onConfirm = { showAlertDialog = false }) {
+            Text(
+                """
 欢迎来到乐动盒（RhythBox）！
 
 在您开启治愈的音乐之旅前，小精灵在此向您做最诚挚的【安心隐私保证】：
@@ -250,7 +252,8 @@ fun Setting(modifier: Modifier = Modifier, onClose: () -> Unit) {
 
 请您仔细阅读并理解上述内容。点击“同意”即代表您接受我们的《用户协议》与《隐私政策》，让我们一起摇滚吧！
 """.trimIndent(),
-            onConfirm = { showAlertDialog = false })
+            )
+        }
     }
 }
 

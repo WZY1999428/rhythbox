@@ -62,6 +62,17 @@ object DownloadEngine {
      */
     suspend fun start() {
         ketch.start()
+        observeTasks().collect { tasks ->
+            tasks.forEach { (task, state) ->
+                // 判断下载状态
+                if (state is DownloadState.Completed) {
+                    task.remove()
+                    task.outputPath?.let {
+                        downloadDao.updateStatus(it, 1)
+                    }
+                }
+            }
+        }
     }
 
     /**
@@ -74,30 +85,26 @@ object DownloadEngine {
         songAudioItem: SongAudioItem,
         overwrite: Boolean = false
     ): AddTaskState {
-//        val exists = downloadDao.exists(song.id)
-//        if (exists && !overwrite) {
-//            return AddTaskState.Exists
-//        }
         val filePath = "$savePath/${songAudioItem.originalName}"
-        val url ="$MUSIC_BASE_URL/${songAudioItem.url}"
-        println("filePathfilePath $filePath")
-        downloadDao.upsert(
-            DownloadSongEntity(
-                songId = song.id,
-                url = url,
-                filePath = filePath,
-                title = song.title,
-                duration = song.duration,
-                isLike = song.isLike,
-                mvUrl = song.mvUrl,
-                cover = song.cover,
-                mediaId = song.mediaId,
-                originalName = songAudioItem.originalName,
-                filename = songAudioItem.filename,
-                artists = song.artists,
-            )
-        )
+        val exists = downloadDao.exists(filePath)
+        if (exists && !overwrite) {
+            return AddTaskState.Exists
+        }
 
+        if (overwrite) {
+            val oldTask = tasks.value.firstOrNull {
+                it.outputPath == filePath
+            }
+            oldTask?.remove(deleteFiles = true)
+        }
+
+        val url = "$MUSIC_BASE_URL/${songAudioItem.url}"
+
+        val items = DownloadSongEntity(
+            downloadPath = filePath,
+            song = song.copy(url = url)
+        )
+        downloadDao.upsert(items)
         ketch.download(
             DownloadRequest(
                 url = url,
@@ -117,17 +124,29 @@ object DownloadEngine {
     }
 
     /**
-     * 监听指定任务状态
-     */
-    fun observeTask(taskId: String) = tasks
-        .map { list -> list.firstOrNull { it.taskId == taskId } }
-        .map { it?.state }
-
-    /**
      * 暂停任务
      */
     suspend fun pause(taskId: String) {
         getTask(taskId)?.pause()
+    }
+
+    suspend fun pausedAll(){
+        ketch.tasks.value.forEach {
+            it.pause()
+        }
+    }
+
+    suspend fun resumeAll(){
+        ketch.tasks.value.forEach {
+            it.resume()
+        }
+    }
+
+
+    suspend fun clear() {
+        ketch.tasks.value.forEach {
+            it.remove()
+        }
     }
 
     /**
@@ -135,13 +154,6 @@ object DownloadEngine {
      */
     suspend fun resume(taskId: String) {
         getTask(taskId)?.resume()
-    }
-
-    /**
-     * 取消任务
-     */
-    suspend fun cancel(taskId: String) {
-        getTask(taskId)?.cancel()
     }
 
     /**

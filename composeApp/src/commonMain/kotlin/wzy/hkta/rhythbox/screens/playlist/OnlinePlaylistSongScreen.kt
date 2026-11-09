@@ -81,10 +81,10 @@ import wzy.hkta.rhythbox.database.PlaylistSortEntity
 import wzy.hkta.rhythbox.screens.artist.OnlineArtistSongScreen
 import wzy.hkta.rhythbox.utils.Rhythbox
 import wzy.hkta.rhythbox.utils.Rhythbox.player
-import wzy.hkta.rhythbox.utils.SongListType
 import wzy.hkta.rhythbox.fatchMusic.FetchMusic
 import wzy.hkta.rhythbox.fatchMusic.PlaylistInfo
 import wzy.hkta.rhythbox.fatchMusic.Song
+import wzy.hkta.rhythbox.utils.SongType
 import wzy.hkta.rhythbox.utils.formatPlayTotal
 import wzy.hkta.rhythbox.utils.isCurrentPlaying
 import wzy.hkta.rhythbox.utils.sortSong
@@ -114,7 +114,7 @@ class OnlinePlaylistSongScreen(
 
         var showSongBottomSheet by remember { mutableStateOf(false) }
         var showSortSongBottomSheet by remember { mutableStateOf(false) }
-        var selected by remember { mutableStateOf<Song?>(null) }
+        var selected by remember { mutableStateOf<SongType?>(null) }
         val playMediaId by player.playMediaId.collectAsState()
         val isPlaying by player.isPlaying.collectAsState()
 
@@ -220,8 +220,8 @@ class OnlinePlaylistSongScreen(
                 OnlineSongBottomSheet(
                     show = showSongBottomSheet,
                     songId = selected!!.id,
-                    artists = selected!!.artists,
-                    songName = selected!!.title,
+                    artists = selected!!.artists!!,
+                    songName = selected!!.name,
                     cover = selected!!.cover,
                     onArtistClick = { artistId, artistName ->
                         showSongBottomSheet = false
@@ -352,13 +352,13 @@ fun PlaylistSongTopBar(
 
 @Composable
 fun PlaylistSongList(
-    songList: List<Song>,
+    songList: List<SongType>,
     navigator: Navigator,
     playMediaId: String?,
     isPlaying: Boolean,
     modifier: Modifier = Modifier,
     onPlay: (Int) -> Unit = {}, // onPlay
-    onMoreClick: (Song) -> Unit = {},
+    onMoreClick: (SongType) -> Unit = {},
 ) {
     if (songList.isEmpty()) {
         RhythboxSongEmptyState(
@@ -376,8 +376,8 @@ fun PlaylistSongList(
             items(songList.size) {
                 val item = songList[it]
                 SongItem(
-                    title = item.title,
-                    subTitle = item.artists.joinToString("/") { ar -> ar.artistName },
+                    title = item.name,
+                    subTitle = item.artist,
                     duration = item.duration,
                     isPlay = isCurrentPlaying(playMediaId, item.mediaId),
                     isPlaying = isPlaying,
@@ -521,7 +521,7 @@ class OnlinePlaylistSongViewModel(
     val navigator: Navigator
 ) : ScreenModel {
     private val _playlistInfo = MutableStateFlow<PlaylistInfo?>(null)
-    private val _songList = MutableStateFlow<List<Song>>(mutableStateListOf())
+    private val _songList = MutableStateFlow<List<SongType>>(mutableStateListOf())
     private val _sortEntity = MutableStateFlow(PlaylistSortEntity(sortKey = key))
 
     val playlistInfo = _playlistInfo.asStateFlow()
@@ -542,7 +542,7 @@ class OnlinePlaylistSongViewModel(
             _sortEntity.value = sortConfig
             val list = sortSong(songs.toList(), sortConfig.sortName, sortConfig.sortType)
             if (player.playKey.value == key) {
-                player.sortMediaItems(SongListType.NetworkList(list.toMutableList()))
+                player.sortMediaItems(list)
             }
             list
         }
@@ -565,7 +565,7 @@ class OnlinePlaylistSongViewModel(
                 val infoDeferred = async { FetchMusic.music.getPlayListInfo(id) }
                 val songListDeferred = async { FetchMusic.music.getPlayListSong(id) }
                 _playlistInfo.value = infoDeferred.await()
-                _songList.value = songListDeferred.await()
+                _songList.value = songListDeferred.await().map { song -> SongType.Network(song) }
             } catch (err: Exception) {
 
             }
@@ -590,26 +590,16 @@ class OnlinePlaylistSongViewModel(
                 FetchMusic.music.incrementPlaylistPlayTotal(id)
             }
         }
-        player.let { p ->
-            p.resetMediaItems(
-                key,
-                SongListType.NetworkList(songList.value.toMutableList()),
-                false,
-                index
-            )
-            p.prepare(index)
-            p.play()
+        player.resetMediaItems(key, songList.value, false) {
+            player.prepare(index)
+            player.play()
         }
     }
 
     fun resetMediaItems() {
         screenModelScope.launch {
             delay(50.milliseconds)
-            player.resetMediaItems(
-                key,
-                SongListType.NetworkList(songList.value.toMutableList()),
-                true
-            )
+            player.resetMediaItems(key, songList.value, true)
         }
     }
 }

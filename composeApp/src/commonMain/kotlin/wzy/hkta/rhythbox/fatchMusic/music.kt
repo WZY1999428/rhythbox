@@ -25,6 +25,12 @@ object Music {
         return data.toNetSongs("recommendations-leaderboard")
     }
 
+
+    suspend fun getHotSong(): List<Song> {
+        val data = getOrJson<List<Song>>("music/song/hotNew")!!
+        return data.toNetSongs("song-hotNew")
+    }
+
     suspend fun getPlaylistFeatured(cate: String): List<Song> {
         val data = getOrJson<List<Song>>("music/recommendations/leaderboard") {
             url {
@@ -64,6 +70,14 @@ object Music {
         }
     }
 
+    suspend fun getPlayHotList(): List<Playlist> {
+        val data = getOrJson<List<Playlist>>("music/playlist/hot")!!
+        return data.map {
+            it.copy(
+                cover = it.cover?.let { cover -> "$MUSIC_BASE_URL/$cover" }
+            )
+        }
+    }
 
     suspend fun getFavoriteSong(): List<Song> {
         val data = getOrJson<List<Song>>("music/song/favorite")!!
@@ -140,13 +154,13 @@ object Music {
         return data.data!!
     }
 
-    suspend fun getArtistAlbumList(artistId: Long): List<Album> {
+    suspend fun getArtistAlbumList(artistId: Long): List<Album>? {
         val data = getOrJson<List<Album>>("music/artist/albumList") {
             url {
                 parameters.append("artistId", artistId.toString())
             }
-        }!!
-        return data.toNetAlbum()
+        }
+        return data?.toNetAlbum()
     }
 
     suspend fun toggleArtistFavorite(artistId: Long): Boolean {

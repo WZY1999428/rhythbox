@@ -53,9 +53,7 @@ import wzy.hkta.rhythbox.components.MAlertDialog
 import wzy.hkta.rhythbox.expect.PlayMode
 import wzy.hkta.rhythbox.database.CollectEntity
 import wzy.hkta.rhythbox.screens.song.SongScreen
-import wzy.hkta.rhythbox.utils.SongListType
 import wzy.hkta.rhythbox.utils.SongType
-import wzy.hkta.rhythbox.utils.getSongInfo
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -119,7 +117,7 @@ fun PlayerMenuBottomSheet(
                             modifier = Modifier.padding(end = 5.dp)
                         )
                         Text(
-                            "(${songLength(mediaItems)}首音乐)",
+                            "(${mediaItems.size}首音乐)",
                             fontSize = 14.sp,
                             color = "#716D6D".cssToColor(),
                         )
@@ -143,7 +141,7 @@ fun PlayerMenuBottomSheet(
                     }
                 }
 
-                if (songLength(mediaItems) == 0) {
+                if (mediaItems.size == 0) {
                     RhythboxSongEmptyState(
                         describe = "黑胶唱机正静静等待，快去挑一首心动的旋律让它转动吧~",
                         buttonText = "去听歌",
@@ -157,81 +155,37 @@ fun PlayerMenuBottomSheet(
                         state = columnState,
                         modifier = Modifier.fillMaxWidth().weight(1f)
                     ) {
-                        when (val md = mediaItems) {
-                            is SongListType.LocalList -> {
-                                items(md.songList.size) {
-                                    md.songList.getOrNull(it)?.let { item ->
-                                        PlayerMenuItem(
-                                            isPlay = playMediaId.value == item.mediaId,
-                                            isPlaying = isPlaying.value,
-                                            no = it + 1,
-                                            title = item.name,
-                                            subTitle = item.artist ?: "未知歌手",
-                                            isLike = item.isLike,
-                                            onLike = {
-                                                scope.launch {
-                                                    if (item.isLike) {
-                                                        collectDao.delete(item.id)
-                                                    } else {
-                                                        collectDao.insert(CollectEntity(songId = item.id))
-                                                    }
-                                                    player.updateMediaItem(
-                                                        SongType.Local(
-                                                            item.copy(
-                                                                isLike = !item.isLike
-                                                            )
-                                                        )
-                                                    )
-                                                }
-                                            },
-                                            onRemove = {
-                                                currentSong = SongType.Local(item)
-                                                showAlert = true
-                                            },
-                                            onClick = {
-                                                player.prepare(it)
-                                                player.play()
-                                            })
-                                        Spacer(modifier = Modifier.height(5.dp))
-                                    }
-
-                                }
-                            }
-
-                            is SongListType.NetworkList -> {
-                                items(md.songList.size) {
-                                    val song = md.songList[it]
-                                    val item = getSongInfo(SongType.Network(song))
-                                    PlayerMenuItem(
-                                        isPlay = playMediaId.value == item!!.mediaId,
-                                        isPlaying = isPlaying.value,
-                                        no = it + 1,
-                                        title = item.name,
-                                        subTitle = item.artist ?: "未知歌手",
-                                        isLike = item.isLike,
-                                        onLike = {
-                                            scope.launch {
-                                                if (item.isLike) {
-                                                    collectDao.delete(item.id)
-                                                } else {
-                                                    collectDao.insert(CollectEntity(songId = item.id))
-                                                }
-//                                                player.updateMediaItem(SongType.Local(item.copy(isLike = !item.isLike)))
+                        items(mediaItems.size) {
+                            mediaItems.getOrNull(it)?.let { item ->
+                                PlayerMenuItem(
+                                    isPlay = playMediaId.value == item.mediaId,
+                                    isPlaying = isPlaying.value,
+                                    no = it + 1,
+                                    title = item.name,
+                                    subTitle = item.artist ?: "未知歌手",
+                                    isLike = item.isLike,
+                                    onLike = {
+                                        scope.launch {
+                                            if (item.isLike) {
+                                                collectDao.delete(item.id)
+                                            } else {
+                                                collectDao.insert(CollectEntity(songId = item.id))
                                             }
-                                        },
-                                        onRemove = {
-                                            currentSong = SongType.Network(song)
-                                            showAlert = true
-                                        },
-                                        onClick = {
-                                            player.prepare(it)
-                                            player.play()
-                                        })
-                                    Spacer(modifier = Modifier.height(5.dp))
-                                }
+//                                            player.updateMediaItem(item.copy(isLike = !item.isLike))
+                                        }
+                                    },
+                                    onRemove = {
+                                        currentSong = item
+                                        showAlert = true
+                                    },
+                                    onClick = {
+                                        player.prepare(it)
+                                        player.play()
+                                    })
                             }
-                        }
+                            Spacer(modifier = Modifier.height(5.dp))
 
+                        }
                     }
                 }
             }
@@ -240,7 +194,6 @@ fun PlayerMenuBottomSheet(
         MAlertDialog(
             show = showAlert,
             title = "提示",
-            content = "确定要把此音乐从播放列表移除吗",
             onCancel = { showAlert = false },
             onConfirm = {
                 if (currentSong != null) {
@@ -248,21 +201,10 @@ fun PlayerMenuBottomSheet(
                 }
                 showAlert = false
             }
-        )
+        ) { Text("确定要把此音乐从播放列表移除吗") }
     }
 }
 
-fun songLength(mediaItems: SongListType): Int {
-    return when (mediaItems) {
-        is SongListType.LocalList -> {
-            mediaItems.songList.size
-        }
-
-        is SongListType.NetworkList -> {
-            mediaItems.songList.size
-        }
-    }
-}
 
 @Composable
 private fun PlayerMenuItem(

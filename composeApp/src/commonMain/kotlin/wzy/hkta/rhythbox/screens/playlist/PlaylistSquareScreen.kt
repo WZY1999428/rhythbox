@@ -27,6 +27,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -78,6 +79,10 @@ class PlaylistSquareScreen : Screen {
             },
             onPlaylistClick = { title, id ->
                 navigator.push(OnlinePlaylistSongScreen(title, id))
+            },
+            onAction= {
+                navigator.push(HotPlaylistScreen())
+
             }
         )
     }
@@ -88,6 +93,7 @@ fun PlaylistSquareContent(
     vm: PlaylistSquareViewModel,
     modifier: Modifier = Modifier,
     onSearchClick: () -> Unit = {},
+    onAction: (() -> Unit)? = null,
     onPlaylistClick: ((title: String, id: Long) -> Unit)? = null,
     onPlayPlaylist: ((title: String, id: Long) -> Unit)? = null
 ) {
@@ -219,7 +225,7 @@ fun PlaylistSquareContent(
                             horizontalArrangement = Arrangement.spacedBy(13.dp)
                         ) {
                             playlist.forEach { playlist ->
-                                PlaylistCard(
+                                OnlinePlaylistCard(
                                     playlist = playlist,
                                     modifier = Modifier.weight(1f),
                                     onClick = {
@@ -243,7 +249,7 @@ fun PlaylistSquareContent(
                     SectionHeader(
                         title = "热门歌单",
                         subtitle = "大家最近都在听",
-                        action = "更多"
+                        onAction = onAction
                     )
 
                     Row(
@@ -441,7 +447,7 @@ private fun FeaturedPlaylist(
 private fun SectionHeader(
     title: String,
     subtitle: String,
-    action: String? = null
+    onAction: (() -> Unit)? = null
 ) {
     Row(
         modifier = Modifier
@@ -465,18 +471,22 @@ private fun SectionHeader(
             )
         }
 
-        if (action != null) {
-            Text(
-                text = "$action  ›",
-                fontSize = 12.sp,
-                color = Color(0xFF8F8994)
-            )
+        if (onAction != null) {
+            TextButton(onClick = {
+                onAction()
+            }) {
+                Text(
+                    text = "查看更多›",
+                    fontSize = 12.sp,
+                    color = Color(0xFF8F8994)
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun PlaylistCard(
+fun OnlinePlaylistCard(
     playlist: Playlist,
     modifier: Modifier = Modifier,
     onClick: () -> Unit

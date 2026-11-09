@@ -13,17 +13,17 @@ import wzy.hkta.rhythbox.expect.AppDatabaseConstructor
     entities = [SingerEntity::class, SongEntity::class, AlbumEntity::class, DirEntity::class, PlaylistSortEntity::class,
         CollectEntity::class, LyricEntity::class, PlaylistEntity::class, PlaylistSongEntity::class, PlayHistoryEntity::class,
         SongCache::class, DownloadSongEntity::class],
-    version = 2,
-    autoMigrations = [
-        AutoMigration(from = 1, to = 2)
-    ]
+    version = 4,
+//    autoMigrations = [
+//        AutoMigration(from = 2, to = 3)
+//    ]
 )
 
 
 
 
 @ConstructedBy(AppDatabaseConstructor::class)
-@TypeConverters(SongArtistConverter::class)
+@TypeConverters(SongArtistConverter::class, LanguageConverter::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun getSingerDao(): SingerDao
     abstract fun getSongDao(): SongDao

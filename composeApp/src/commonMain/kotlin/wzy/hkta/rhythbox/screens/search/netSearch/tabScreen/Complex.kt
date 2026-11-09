@@ -16,6 +16,8 @@ import wzy.hkta.rhythbox.screens.search.netSearch.AlbumItem
 import wzy.hkta.rhythbox.screens.search.netSearch.ArtistItem
 import wzy.hkta.rhythbox.screens.search.netSearch.PlaylistItem
 import wzy.hkta.rhythbox.screens.search.netSearch.SearchSongItem
+import wzy.hkta.rhythbox.utils.Rhythbox
+import wzy.hkta.rhythbox.utils.SongType
 
 @Composable
 fun ComplexList(vm: OnlineSearchViewModel, navigator: Navigator) {
@@ -56,12 +58,14 @@ fun ComplexList(vm: OnlineSearchViewModel, navigator: Navigator) {
                 }
             )
         }
-        items(complex.song) {
+        items(complex.song) { song ->
             SearchSongItem(
-                title = it.title,
-                coverUrl = it.cover,
-                artist = it.artists.joinToString("/") { it.artistName },
-                onClick = {},
+                title = song.title,
+                coverUrl = song.cover,
+                artist = song.artists.joinToString("/") { it.artistName },
+                onClick = {
+                    Rhythbox.player.addSong(SongType.Network(song))
+                },
                 onMoreClick = {}
             )
         }

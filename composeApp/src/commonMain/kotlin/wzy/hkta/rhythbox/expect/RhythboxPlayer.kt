@@ -2,7 +2,6 @@ package wzy.hkta.rhythbox.expect
 
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.serialization.Serializable
-import wzy.hkta.rhythbox.utils.SongListType
 import wzy.hkta.rhythbox.utils.SongType
 import wzy.hkta.rhythbox.fatchMusic.LyricData
 
@@ -22,7 +21,7 @@ expect class RhythboxPlayer {
     val currentPosition: StateFlow<Long>
     val duration: StateFlow<Long>
     val playerLoading: StateFlow<Boolean>
-    val mediaItems: StateFlow<SongListType>
+    val mediaItems: StateFlow<MutableList<SongType>>
     val playMode: StateFlow<PlayMode>
     val playIndex: StateFlow<Int>
     val playKey: StateFlow<String?>
@@ -43,12 +42,12 @@ expect class RhythboxPlayer {
     fun restorePlaylist()
     fun getSongLyric()
 
-    fun sortMediaItems( songItems: SongListType)
+    fun sortMediaItems(songItems: List<SongType>)
     fun resetMediaItems(
         key: String,
-        songItems: SongListType,
+        songItems: List<SongType>,
         refresh: Boolean?,
-        startIndex: Int? = null,
+        cb: (() -> Unit)? = null
     )
 
     fun updateMediaItem(song: SongType)

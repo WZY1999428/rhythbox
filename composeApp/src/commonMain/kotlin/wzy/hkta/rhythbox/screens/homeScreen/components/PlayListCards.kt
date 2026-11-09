@@ -39,12 +39,12 @@ import rhythbox.composeapp.generated.resources.Res
 import rhythbox.composeapp.generated.resources.logo
 import rhythbox.composeapp.generated.resources.plus_2
 import wzy.hkta.rhythbox.components.playlist.RhythboxPlaylistEmptyState
+import wzy.hkta.rhythbox.fatchMusic.MUSIC_BASE_URL
 import wzy.hkta.rhythbox.screens.playlist.PlaylistType
 import wzy.hkta.rhythbox.screens.homeScreen.HomeViewModel
 import wzy.hkta.rhythbox.screens.playlist.OnlineUserPlaylistSongScreen
 import wzy.hkta.rhythbox.screens.playlist.PlaylistSongScreen
-import wzy.hkta.rhythbox.utils.SongListType
-import wzy.hkta.rhythbox.fatchMusic.MUSIC_BASE_URL
+import wzy.hkta.rhythbox.utils.SongType
 
 
 @Composable
@@ -55,6 +55,9 @@ fun PlayListCards(
     onAddPlaylist: () -> Unit = {},
     navigator: Navigator
 ) {
+    val playList by vm.playlist.collectAsState()
+    val onlinePlayList by vm.onlinePlayList.collectAsState()
+
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -78,7 +81,6 @@ fun PlayListCards(
 
         when (type) {
             "Local" -> {
-                val playList by vm.playlist.collectAsState()
                 when (playList.isEmpty()) {
                     true -> PlaylistEmptyState { onAddPlaylist() }
                     false -> LazyRow(
@@ -89,15 +91,13 @@ fun PlayListCards(
                         items(playList.size) {
                             val item = playList[it]
                             PlaylistCard(
-                                name = item.playlist.name,
-                                songType = SongListType.LocalList(
-                                    item.songList.take(8).toMutableList()
-                                ),
+                                name = item.title,
+                                listSong = item.songList.take(8),
                                 onClick = {
                                     navigator.push(
                                         PlaylistSongScreen(
-                                            item.playlist.name,
-                                            item.playlist.id,
+                                            item.title,
+                                            item.id!!,
                                             PlaylistType.PLAYLIST
                                         )
                                     )
@@ -110,23 +110,25 @@ fun PlayListCards(
             }
 
             else -> {
-                val playList by vm.onlinePlayList.collectAsState()
-                when (playList.isEmpty()) {
+                when (onlinePlayList.isEmpty()) {
                     true -> PlaylistEmptyState { onAddPlaylist() }
                     false -> LazyRow(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
                         contentPadding = PaddingValues(horizontal = 5.dp)
                     ) {
-                        items(playList.size) {
-                            val item = playList[it]
+                        items(onlinePlayList.size) {
+                            val item = onlinePlayList[it]
                             PlaylistCard(
                                 name = item.title,
-                                songType = SongListType.NetworkList(
-                                    item.songList.take(8).toMutableList()
-                                ),
+                                listSong = item.songList.take(8),
                                 onClick = {
-                                    navigator.push(OnlineUserPlaylistSongScreen(item.title, item.id!!))
+                                    navigator.push(
+                                        OnlineUserPlaylistSongScreen(
+                                            item.title,
+                                            item.id!!
+                                        )
+                                    )
                                 }
                             )
                             Spacer(modifier = Modifier.width(10.dp))
@@ -154,7 +156,7 @@ internal fun PlaylistEmptyState(
 @Composable
 internal fun PlaylistCard(
     name: String,
-    songType: SongListType,
+    listSong: List<SongType>,
     onClick: () -> Unit
 ) {
     Column(
@@ -172,45 +174,27 @@ internal fun PlaylistCard(
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                when (songType) {
-                    is SongListType.LocalList -> {
-                        songType.songList.take(8).forEach { song ->
-                            if (song.cover != null) {
-                                AsyncImage(
-                                    model = song.cover,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(38.dp)
-                                        .clip(shape = RoundedCornerShape(5.dp))
-                                )
-                            } else {
-                                Image(
-                                    painter = painterResource(Res.drawable.logo),
-                                    contentDescription = null,
-                                    modifier = Modifier.size(38.dp)
-                                        .clip(shape = RoundedCornerShape(5.dp))
-                                )
-                            }
-                        }
-                    }
-
-                    is SongListType.NetworkList -> {
-                        println("songType.songListsongType.songList ${songType.songList}")
-                        songType.songList.take(8).forEach { song ->
-                            AsyncImage(
-                                model = "$MUSIC_BASE_URL${song.cover}",
-                                contentDescription = null,
-                                modifier = Modifier.size(38.dp)
-                                    .clip(shape = RoundedCornerShape(5.dp))
-                            )
-                        }
+                listSong.take(8).forEach { song ->
+                    if (song.cover != null) {
+                        AsyncImage(
+                            model = if (song.sourceType == "Local") song.cover else "$MUSIC_BASE_URL${song.cover}",
+                            contentDescription = null,
+                            modifier = Modifier.size(38.dp)
+                                .clip(shape = RoundedCornerShape(5.dp))
+                        )
+                    } else {
+                        Image(
+                            painter = painterResource(Res.drawable.logo),
+                            contentDescription = null,
+                            modifier = Modifier.size(38.dp)
+                                .clip(shape = RoundedCornerShape(5.dp))
+                        )
                     }
                 }
-
             }
         }
         Spacer(modifier = Modifier.height(5.dp))
         Text(
-//            item.playlist.name,
             name,
             modifier = Modifier.fillMaxWidth(),
             fontSize = 13.sp,

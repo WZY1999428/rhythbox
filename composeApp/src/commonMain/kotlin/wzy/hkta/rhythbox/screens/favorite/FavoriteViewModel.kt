@@ -12,12 +12,12 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import wzy.hkta.rhythbox.database.PlayHistoryEntity
 import wzy.hkta.rhythbox.utils.Rhythbox
-import wzy.hkta.rhythbox.utils.SongListType
 import wzy.hkta.rhythbox.fatchMusic.Album
 import wzy.hkta.rhythbox.fatchMusic.Artist
 import wzy.hkta.rhythbox.fatchMusic.FetchMusic
 import wzy.hkta.rhythbox.fatchMusic.Playlist
 import wzy.hkta.rhythbox.fatchMusic.Song
+import wzy.hkta.rhythbox.utils.SongType
 import wzy.hkta.rhythbox.utils.generateMediaId
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -49,7 +49,7 @@ class FavoriteViewModel : ScreenModel {
     val playKey = player.playKey
     val localKey = "localFavoriteSongList"
 
-    private val _netSongList = MutableStateFlow(FavoriteResult<Song>())
+    private val _netSongList = MutableStateFlow(FavoriteResult<SongType>())
 
     private val _artistList = MutableStateFlow(FavoriteResult<Artist>())
 
@@ -63,10 +63,10 @@ class FavoriteViewModel : ScreenModel {
     val playlist = _playlist.asStateFlow()
 
     val localSongList = songDao.findCollect().map { rawList ->
-        rawList.map { song -> song.copy(mediaId = generateMediaId(localKey, song)) }
-    }.onEach {
+        rawList.map { song -> SongType.Local(song.copy(mediaId = generateMediaId(localKey, song))) }
+    }.onEach { list ->
         if (playKey.value == localKey) {
-            resetMediaItems(localKey, SongListType.LocalList(it.toMutableList()))
+            resetMediaItems(localKey, list)
         }
     }.stateIn(
         scope = screenModelScope,
@@ -111,7 +111,7 @@ class FavoriteViewModel : ScreenModel {
         screenModelScope.launch {
             when (type) {
                 FavoriteType.SONG -> loadFavorite(
-                    fetch = { FetchMusic.music.getFavoriteSong() },
+                    fetch = { FetchMusic.music.getFavoriteSong().map { SongType.Network(it) } },
                     state = _netSongList
                 )
 
@@ -134,7 +134,7 @@ class FavoriteViewModel : ScreenModel {
     }
 
 
-    fun resetMediaItems(key: String, songList: SongListType) {
+    fun resetMediaItems(key: String, songList: List<SongType>) {
         screenModelScope.launch {
             delay(50.milliseconds)
             player.resetMediaItems(key, songList, false)
@@ -146,7 +146,7 @@ class FavoriteViewModel : ScreenModel {
         player.let { p ->
             p.resetMediaItems(
                 key,
-                SongListType.LocalList(localSongList.value.toMutableList()),
+                localSongList.value,
                 false
             )
             p.prepare(index)
@@ -160,15 +160,9 @@ class FavoriteViewModel : ScreenModel {
             songDao.deleteOldPlayHistory()
             songDao.insertPlayHistory(PlayHistoryEntity(songId = id))
         }
-
-        player.let { p ->
-            p.resetMediaItems(
-                "favorite-net-song",
-                SongListType.NetworkList(netSongList.value.list.toMutableList()),
-                true,
-                index
-            )
-            p.play()
+        player.resetMediaItems("favorite-net-song", netSongList.value.list, false) {
+            player.prepare(index)
+            player.play()
         }
     }
 

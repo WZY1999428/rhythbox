@@ -97,7 +97,29 @@ suspend fun <T> retry(
 
     throw lastException!!
 }
+fun formatFileSize(size: Long): String {
+    if (size < 0) return "未知大小"
+    if (size == 0L) return "0 B"
 
+    val units = arrayOf("B", "KB", "MB", "GB", "TB")
+    var value = size.toDouble()
+    var index = 0
+
+    while (value >= 1024 && index < units.lastIndex) {
+        value /= 1024
+        index++
+    }
+
+    val number = if (index == 0) {
+        value.toLong().toString()
+    } else {
+        ((value * 100).toLong() / 100.0).let {
+            "%.2f".format(it)
+        }
+    }
+
+    return "$number ${units[index]}"
+}
 
 fun formatPlayTotal(total: Long): String {
     val (value, unit) = when {

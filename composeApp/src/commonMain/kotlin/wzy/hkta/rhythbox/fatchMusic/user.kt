@@ -42,7 +42,7 @@ object User {
         return true
     }
 
-    suspend fun savePlaylist(params: PlaylistFields): Boolean {
+    suspend fun savePlaylist(params: PlaylistFields<Song>): Boolean {
         val result = client.post("user-playlist/save") {
             contentType(ContentType.Application.Json)
             setBody(params)
@@ -64,8 +64,8 @@ object User {
     }
 
 
-    suspend fun getUserPlaylist(): List<PlaylistFields>? {
-        val data = getOrJson<List<PlaylistFields>>("user-playlist/list")
+    suspend fun getUserPlaylist(): List<PlaylistFields<Song>>? {
+        val data = getOrJson<List<PlaylistFields<Song>>>("user-playlist/list")
         return data
     }
 
@@ -92,8 +92,8 @@ object User {
     }
 
 
-    suspend fun getPlayListInfo(playlistId: Long): PlaylistFields? {
-        val data = getOrJson<PlaylistFields>("user-playlist/$playlistId") {
+    suspend fun getPlayListInfo(playlistId: Long): PlaylistFields<Song>? {
+        val data = getOrJson<PlaylistFields<Song>>("user-playlist/$playlistId") {
         }
         return data
     }

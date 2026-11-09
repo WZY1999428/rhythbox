@@ -19,6 +19,5 @@ val TokenPlugin = createClientPlugin("TokenPlugin") {
             UserManager.removeToken()
             ToastManager.show("登录已过期")
         }
-
     }
 }

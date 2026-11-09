@@ -32,11 +32,8 @@ const val CUSTOM_ACTION_PREV = "wzy.hkta.rhythbox.ACTION_PREV"
 const val CUSTOM_ACTION_NEXT = "wzy.hkta.rhythbox.ACTION_NEXT"
 
 class PlaybackService : MediaSessionService() {
-    private val isAndroid80 = (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
     private var mediaSession: MediaSession? = null
     private var noisyReceiver: BroadcastReceiver? = null
-
-    // 1. 定义你的自定义按钮（由于你只有一首歌，系统默认的上下首用不了，必须用自定义的）
 
 
     // 💡 当服务启动时触发
@@ -58,7 +55,6 @@ class PlaybackService : MediaSessionService() {
         * 为了防止在公共场合发生耳机一拔、扬声器突然大声外放音乐的尴尬社交名场面，Android 官方提供了这个机制。
         * */
         noisyReceiver = object : BroadcastReceiver() {
-            @RequiresApi(Build.VERSION_CODES.O)
             override fun onReceive(context: Context?, intent: Intent?) {
                 if (intent?.action == AudioManager.ACTION_AUDIO_BECOMING_NOISY) {
                     if (SettingManager.pauseOnHeadsetDisconnect.value) {
@@ -112,22 +108,22 @@ class PlaybackService : MediaSessionService() {
             // 拦截通知栏“上一首”标准动作
             override fun seekToPrevious() {
                 // 放弃 ExoPlayer 内部的 3秒判断，直接执行你的切歌
-                if (isAndroid80) Rhythbox.player.prev()
+                Rhythbox.player.prev()
             }
 
             // 拦截通知栏“下一首”标准动作
             override fun seekToNext() {
-                if (isAndroid80) Rhythbox.player.next()
+                Rhythbox.player.next()
             }
 
             // 拦截多媒体按键或某些系统控制的标准上一首
             override fun seekToPreviousMediaItem() {
-                if (isAndroid80) Rhythbox.player.prev()
+                Rhythbox.player.prev()
             }
 
             // 拦截多媒体按键或某些系统控制的标准下一首
             override fun seekToNextMediaItem() {
-                if (isAndroid80) Rhythbox.player.next()
+                Rhythbox.player.next()
             }
         }
         return forwardingPlayer
@@ -137,10 +133,24 @@ class PlaybackService : MediaSessionService() {
 
     @UnstableApi
     private class CustomMediaSessionCallback : MediaSession.Callback {
+        // 1. 补上系统恢复播放的回调，防止抛出 UnsupportedOperationException 异常！
+        @Deprecated("Deprecated in Java")
+        override fun onPlaybackResumption(
+            mediaSession: MediaSession,
+            controller: MediaSession.ControllerInfo
+        ): ListenableFuture<MediaSession.MediaItemsWithStartPosition> {
+            // 这里可以直接让当前的 player 准备并开始播放，或者返回你当前保存的队列位置
+            val player = Rhythbox.player // 假设你的 player 可以这样拿到
 
+            return immediateFuture(
+                MediaSession.MediaItemsWithStartPosition(
+                    emptyList(), // 如果不需要动态重载列表，可以传空，或者传你当前的媒体项
+                    player.playIndex.value,
+                    player.duration.value
+                )
+            )
+        }
 
-        // 2. 在这里接收通知栏的点击事件，然后调用你自己的列表管理器
-        @RequiresApi(Build.VERSION_CODES.O)
         override fun onCustomCommand(
             session: MediaSession,
             controller: MediaSession.ControllerInfo,
@@ -155,14 +165,12 @@ class PlaybackService : MediaSessionService() {
 
                 CUSTOM_ACTION_NEXT -> {
                     Rhythbox.player.next()
-
                     return immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
                 }
             }
             return super.onCustomCommand(session, controller, customCommand, args)
         }
 
-        @RequiresApi(Build.VERSION_CODES.O)
         override fun onMediaButtonEvent(
             session: MediaSession,
             controllerInfo: MediaSession.ControllerInfo,
@@ -191,9 +199,7 @@ class PlaybackService : MediaSessionService() {
             }
             return super.onMediaButtonEvent(session, controllerInfo, intent)
         }
-
     }
-
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? {
         return mediaSession

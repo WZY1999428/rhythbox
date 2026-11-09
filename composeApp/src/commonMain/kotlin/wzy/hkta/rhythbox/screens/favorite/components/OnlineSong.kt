@@ -47,7 +47,7 @@ import wzy.hkta.rhythbox.screens.search.netSearch.OnlineSearchScreen
 import wzy.hkta.rhythbox.screens.user.LoginScreen
 import wzy.hkta.rhythbox.utils.Rhythbox
 import wzy.hkta.rhythbox.utils.UserManager
-import wzy.hkta.rhythbox.fatchMusic.Song
+import wzy.hkta.rhythbox.utils.SongType
 import wzy.hkta.rhythbox.utils.isCurrentPlaying
 
 @Composable
@@ -60,7 +60,7 @@ fun OnlineSong(
     val songCount = songList.total
     val playMediaId by player.playMediaId.collectAsState()
     val isPlaying by player.isPlaying.collectAsState()
-    var selected by remember { mutableStateOf<Song?>(null) }
+    var selected by remember { mutableStateOf<SongType?>(null) }
     var showSongBottomSheet by remember { mutableStateOf(false) }
 
 
@@ -138,8 +138,8 @@ fun OnlineSong(
                             val item = songList.list[it]
                             SongItem(
                                 no = it + 1,
-                                title = item.title,
-                                subTitle = item.artists.joinToString { ar -> ar.artistName },
+                                title = item.name,
+                                subTitle = item.artist!!,
                                 duration = item.duration,
                                 isPlay = isCurrentPlaying(playMediaId, item.mediaId),
                                 isPlaying = isPlaying,
@@ -171,8 +171,8 @@ fun OnlineSong(
             OnlineSongBottomSheet(
                 show = showSongBottomSheet,
                 songId = selected!!.id,
-                artists = selected!!.artists,
-                songName = selected!!.title,
+                artists = selected!!.artists!!,
+                songName = selected!!.name,
                 cover = selected!!.cover,
                 onArtistClick = { artistId, artistName ->
                     showSongBottomSheet = false

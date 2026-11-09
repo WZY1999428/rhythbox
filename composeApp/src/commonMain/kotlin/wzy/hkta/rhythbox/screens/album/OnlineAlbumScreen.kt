@@ -36,12 +36,18 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
 import rhythbox.composeapp.generated.resources.Res
+import rhythbox.composeapp.generated.resources.defaultpage
+import rhythbox.composeapp.generated.resources.error
 import rhythbox.composeapp.generated.resources.logo
 import wzy.hkta.rhythbox.components.NavBar
+import wzy.hkta.rhythbox.components.RhythboxLoadingState
+import wzy.hkta.rhythbox.components.Toast
 import wzy.hkta.rhythbox.components.song.RhythboxSongEmptyState
 import wzy.hkta.rhythbox.screens.ScanMusicScreen
 import wzy.hkta.rhythbox.fatchMusic.Album
 import wzy.hkta.rhythbox.fatchMusic.FetchMusic
+import wzy.hkta.rhythbox.screens.playlist.PlaylistSquareScreen
+import wzy.hkta.rhythbox.utils.ToastManager
 
 class OnlineAlbumScreen(val id: Long) : Screen {
     @Composable
@@ -49,16 +55,37 @@ class OnlineAlbumScreen(val id: Long) : Screen {
         val navigator = LocalNavigator.currentOrThrow
         val vm = rememberScreenModel("online-album-$id") { OnlineAlbumViewModel(id) }
         val albumList by vm.albumList.collectAsState()
+        val isError by vm.isError.collectAsState()
+        val isLoading by vm.isLoading.collectAsState()
+
+
         Column(modifier = Modifier.fillMaxSize()) {
             NavBar(title = "专辑")
+
             if (albumList.isEmpty()) {
-                RhythboxSongEmptyState(
-                    describe = "陈列架上空空如也，还没有收藏到精美的黑胶唱片呢~",
-                    buttonText = "去扫描",
-                    onButtonClick = {
-                        navigator.push(ScanMusicScreen())
+                when (isLoading) {
+                    true -> RhythboxLoadingState()
+                    false -> {
+                        RhythboxSongEmptyState(
+                            describe = when (isError) {
+                                true -> "请求失败，无法获取数据~"
+                                false -> "这里什么都没有哦~"
+                            },
+                            image = when (isError) {
+                                true -> Res.drawable.error
+                                false -> Res.drawable.defaultpage
+                            },
+                            buttonText = "我知道了",
+                            onButtonClick = {
+                                when (isError) {
+                                    true -> vm.getAlbumList()
+                                    false -> navigator.pop()
+                                }
+                            }
+                        )
                     }
-                )
+                }
+
             } else {
                 LazyVerticalGrid(
                     columns = GridCells.Adaptive(90.dp),
@@ -125,6 +152,10 @@ private class OnlineAlbumViewModel(val id: Long) : ScreenModel {
     private val _albumList = MutableStateFlow<List<Album>>(emptyList())
 
     val albumList = _albumList.asStateFlow()
+    private val _isError = MutableStateFlow(false)
+    val isError = _isError.asStateFlow()
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading = _isLoading.asStateFlow()
 
     init {
         getAlbumList()
@@ -132,7 +163,20 @@ private class OnlineAlbumViewModel(val id: Long) : ScreenModel {
 
     fun getAlbumList() {
         screenModelScope.launch {
-            _albumList.value = FetchMusic.music.getArtistAlbumList(id)
+            _isError.value = false
+            _isLoading.value = true
+
+            try {
+                FetchMusic.music.getArtistAlbumList(id)?.let {
+                    _albumList.value = it
+                }
+            } catch (e: Exception) {
+                _isError.value = true
+                ToastManager.show("获取专辑列表失败")
+            } finally {
+                _isLoading.value = false
+
+            }
         }
     }
 }

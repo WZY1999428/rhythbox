@@ -11,7 +11,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -49,9 +48,9 @@ import wzy.hkta.rhythbox.database.PlayHistoryEntity
 import wzy.hkta.rhythbox.screens.artist.OnlineArtistSongScreen
 import wzy.hkta.rhythbox.screens.playlist.PlaylistSquareScreen
 import wzy.hkta.rhythbox.utils.Rhythbox
-import wzy.hkta.rhythbox.utils.SongListType
 import wzy.hkta.rhythbox.fatchMusic.FetchMusic
 import wzy.hkta.rhythbox.fatchMusic.Song
+import wzy.hkta.rhythbox.utils.SongType
 import wzy.hkta.rhythbox.utils.isCurrentPlaying
 import wzy.hkta.rhythbox.utils.sortSong
 import kotlin.collections.emptyList
@@ -63,20 +62,18 @@ class OnlineSongScreen(
     @Composable
     override fun Content() {
         val navigator = LocalNavigator.currentOrThrow
-        val vm = rememberScreenModel(tag = "${title}_${key}") { NetSongViewModel(key) }
-        val songList = vm.songList.collectAsState()
-        val songCount = vm.songCount.collectAsState()
-        val isError = vm.isError.collectAsState()
-        val isLoading = vm.isLoading.collectAsState()
-
         val player = Rhythbox.player
-        val playMediaId = player.playMediaId.collectAsState()
-        val isPlaying = player.isPlaying.collectAsState()
+        val vm = rememberScreenModel(tag = "${title}_${key}") { NetSongViewModel(key) }
+        val songList by vm.songList.collectAsState()
+        val songCount by vm.songCount.collectAsState()
+        val isError by vm.isError.collectAsState()
+        val isLoading by vm.isLoading.collectAsState()
+        val playMediaId by player.playMediaId.collectAsState()
+        val isPlaying by player.isPlaying.collectAsState()
 
         var showSongBottomSheet by remember { mutableStateOf(false) }
         var showSortSongBottomSheet by remember { mutableStateOf(false) }
-
-        var selectSong by remember { mutableStateOf<Song?>(null) }
+        var selectSong by remember { mutableStateOf<SongType?>(null) }
 
         Column(modifier = Modifier.fillMaxSize()) {
             NavBar(title = title)
@@ -116,36 +113,36 @@ class OnlineSongScreen(
                         }
                         Spacer(modifier = Modifier.width(10.dp))
                         Text(
-                            "(${songCount.value})首音乐",
+                            "(${songCount})首音乐",
                             fontSize = 14.sp,
                             color = "#999999".cssToColor()
                         )
                     }
                 }
 
-                if (songList.value.isEmpty()) {
-                    when (isLoading.value) {
+                if (songList.isEmpty()) {
+                    when (isLoading) {
                         true -> RhythboxLoadingState()
                         false -> {
                             RhythboxSongEmptyState(
-                                describe = when (isError.value) {
+                                describe = when (isError) {
                                     true -> "请求失败，无法连接服务器~"
                                     false -> "这里什么都没有哦~"
                                 },
-                                image = when (isError.value) {
+                                image = when (isError) {
                                     true -> Res.drawable.error
                                     false -> Res.drawable.defaultpage
                                 },
                                 buttonText = when (key) {
                                     "recently" -> "去广场看看"
-                                    else -> if (isError.value) {
+                                    else -> if (isError) {
                                         "刷新页面"
                                     } else {
                                         "我知道了"
                                     }
                                 },
                                 onButtonClick = {
-                                    when (isError.value) {
+                                    when (isError) {
                                         true -> vm.getSongList()
                                         false -> when (key) {
                                             "recently" -> navigator.push(PlaylistSquareScreen())
@@ -159,15 +156,15 @@ class OnlineSongScreen(
 
                 } else {
                     LazyColumn(modifier = Modifier.weight(1f)) {
-                        items(songList.value.size) {
-                            val item = songList.value[it]
+                        items(songList.size) {
+                            val item = songList[it]
                             SongItem(
                                 no = it + 1,
-                                title = item.title,
-                                subTitle = item.artists.joinToString("/") { ar -> ar.artistName },
+                                title = item.name,
+                                subTitle = item.artist,
                                 duration = item.duration,
-                                isPlay = isCurrentPlaying(playMediaId.value, item.mediaId),
-                                isPlaying = isPlaying.value,
+                                isPlay = isCurrentPlaying(playMediaId, item.mediaId),
+                                isPlaying = isPlaying,
                                 onMoreClick = {
                                     selectSong = item
                                     showSongBottomSheet = true
@@ -184,14 +181,14 @@ class OnlineSongScreen(
             }
         }
 
-        if (selectSong != null) {
+        selectSong?.let { info ->
             OnlineSongBottomSheet(
                 show = showSongBottomSheet,
-                songId = selectSong!!.id,
-                songName = selectSong!!.title,
-                cover = selectSong!!.cover,
-                artists = selectSong!!.artists,
-                isLike = selectSong!!.isLike,
+                songId = info.id,
+                songName = info.name,
+                cover = info.cover,
+                artists = info.artists!!,
+                isLike = info.isLike,
                 onArtistClick = { artistId, artistName ->
                     showSongBottomSheet = false
                     navigator.push(OnlineArtistSongScreen(artistId, artistName))
@@ -214,7 +211,7 @@ private class NetSongViewModel(val key: String) : ScreenModel {
     private val player = Rhythbox.player
     var songDao = Rhythbox.dataBase.getSongDao()
 
-    private val _songList = MutableStateFlow<MutableList<Song>>(mutableStateListOf())
+    private val _songList = MutableStateFlow<List<SongType>>(emptyList())
     private val _isError = MutableStateFlow(false)
     private val _isLoading = MutableStateFlow(false)
     private val _songCount = MutableStateFlow(0)
@@ -247,15 +244,15 @@ private class NetSongViewModel(val key: String) : ScreenModel {
         screenModelScope.launch {
             try {
                 _isError.value = false
-                val songs = when (key) {
+                _songList.value = when (key) {
                     "dailyRecommend" -> FetchMusic.music.fetchRecommendationsDaily()
                     "leaderboard" -> FetchMusic.music.getLeaderboard()
                     "chinese", "indie", "lightMusic" -> FetchMusic.music.getPlaylistFeatured(key)
                     "recently" -> getRecently()
+                    "hot" -> FetchMusic.music.getHotSong()
                     else -> emptyList()
-                }
-                _songList.value = songs.toMutableList()
-                _songCount.value = songs.size
+                }.map { song -> SongType.Network(song) }
+                _songCount.value = _songList.value.size
             } catch (err: Exception) {
                 _isError.value = true
                 println(err)
@@ -270,9 +267,9 @@ private class NetSongViewModel(val key: String) : ScreenModel {
             songDao.insertPlayHistory(PlayHistoryEntity(songId = id))
         }
 
-        player.let { p ->
-            p.resetMediaItems(key, SongListType.NetworkList(songList.value.toMutableList()), true, index)
-            p.play()
+        player.resetMediaItems(key, songList.value, false) {
+            player.prepare(index)
+            player.play()
         }
     }
 

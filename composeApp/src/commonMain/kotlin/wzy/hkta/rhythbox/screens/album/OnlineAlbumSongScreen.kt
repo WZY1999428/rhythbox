@@ -39,6 +39,7 @@ import wzy.hkta.rhythbox.utils.Rhythbox
 import wzy.hkta.rhythbox.fatchMusic.Album
 import wzy.hkta.rhythbox.fatchMusic.Song
 import wzy.hkta.rhythbox.fatchMusic.SongArtist
+import wzy.hkta.rhythbox.utils.SongType
 import wzy.hkta.rhythbox.utils.isCurrentPlaying
 
 class OnlineAlbumSongScreen(
@@ -64,7 +65,7 @@ class OnlineAlbumSongScreen(
         val isPlaying by Rhythbox.player.isPlaying.collectAsState()
 
         var showSongBottomSheet by remember { mutableStateOf(false) }
-        var selected by remember { mutableStateOf<Song?>(null) }
+        var selected by remember { mutableStateOf<SongType?>(null) }
 
         Column(
             modifier = Modifier.fillMaxSize().background(Color(0xFFA0B69E))
@@ -183,10 +184,8 @@ class OnlineAlbumSongScreen(
                             items(songList.size) { index ->
                                 val song = songList[index]
                                 SongItem(
-                                    title = song.title,
-                                    subTitle = song.artists.joinToString("/") {
-                                        it.artistName
-                                    },
+                                    title = song.name,
+                                    subTitle = song.artist ?: "",
                                     duration = song.duration,
                                     isPlay = isCurrentPlaying(
                                         playMediaId,
@@ -215,8 +214,8 @@ class OnlineAlbumSongScreen(
         if (selected != null) {
             OnlineSongBottomSheet(
                 show = showSongBottomSheet,
-                artists = selected!!.artists,
-                songName = selected!!.title,
+                artists = selected!!.artists!!,
+                songName = selected!!.name,
                 songId = selected!!.id,
                 cover = selected!!.cover,
                 onArtistClick = { artistId, artistName ->
@@ -355,7 +354,7 @@ private fun AlbumCardInfo(
 fun ArtistName(
     artists: List<SongArtist>,
     onArtistClick: (Long, String) -> Unit,
-    textColor: Color= Color.White
+    textColor: Color = Color.White
 ) {
     artists.forEachIndexed { index, ar ->
         if (index > 0) {

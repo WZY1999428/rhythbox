@@ -52,7 +52,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
@@ -70,12 +69,12 @@ import wzy.hkta.rhythbox.database.PlaylistSortEntity
 import wzy.hkta.rhythbox.screens.artist.OnlineArtistSongScreen
 import wzy.hkta.rhythbox.utils.Rhythbox
 import wzy.hkta.rhythbox.utils.Rhythbox.player
-import wzy.hkta.rhythbox.utils.SongListType
 import wzy.hkta.rhythbox.utils.ToastManager
 import wzy.hkta.rhythbox.fatchMusic.FetchMusic
 import wzy.hkta.rhythbox.fatchMusic.MUSIC_BASE_URL
 import wzy.hkta.rhythbox.fatchMusic.PlaylistFields
 import wzy.hkta.rhythbox.fatchMusic.Song
+import wzy.hkta.rhythbox.utils.SongType
 import wzy.hkta.rhythbox.utils.formatDate
 import wzy.hkta.rhythbox.utils.sortSong
 import kotlin.time.Duration.Companion.milliseconds
@@ -106,7 +105,7 @@ class OnlineUserPlaylistSongScreen(
         var showAddOnlinePlaylist by remember { mutableStateOf(false) }
         var showPlaylistInfoBottomSheet by remember { mutableStateOf(false) }
         var showAlertDialog by remember { mutableStateOf(false) }
-        var selected by remember { mutableStateOf<Song?>(null) }
+        var selected by remember { mutableStateOf<SongType?>(null) }
         val playMediaId by player.playMediaId.collectAsState()
         val isPlaying by player.isPlaying.collectAsState()
         val scope = rememberCoroutineScope()
@@ -201,8 +200,8 @@ class OnlineUserPlaylistSongScreen(
             OnlineSongBottomSheet(
                 show = showSongBottomSheet,
                 songId = selected!!.id,
-                artists = selected!!.artists,
-                songName = selected!!.title,
+                artists = selected!!.artists!!,
+                songName = selected!!.name,
                 cover = selected!!.cover,
                 onArtistClick = { artistId, artistName ->
                     showSongBottomSheet = false
@@ -234,7 +233,6 @@ class OnlineUserPlaylistSongScreen(
             MAlertDialog(
                 show = showAlertDialog,
                 title = "提示",
-                content = "确定要删除此歌单吗",
                 onCancel = { showAlertDialog = false },
                 onConfirm = {
                     showPlaylistInfoBottomSheet = false
@@ -250,7 +248,7 @@ class OnlineUserPlaylistSongScreen(
                         }
                     }
                 }
-            )
+            ) { Text("确定要删除此歌单吗") }
 
         }
 
@@ -357,8 +355,8 @@ class OnlineUserPlaylistSongViewModel(
     val key: String,
     val navigator: Navigator
 ) : ScreenModel {
-    private val _playlistInfo = MutableStateFlow<PlaylistFields?>(null)
-    private val _songList = MutableStateFlow<List<Song>>(mutableStateListOf())
+    private val _playlistInfo = MutableStateFlow<PlaylistFields<Song>?>(null)
+    private val _songList = MutableStateFlow<List<SongType>>(mutableStateListOf())
     private val _sortEntity = MutableStateFlow(PlaylistSortEntity(sortKey = key))
     val playlistInfo = _playlistInfo.asStateFlow()
     val sortEntity = _sortEntity.asStateFlow()
@@ -380,7 +378,7 @@ class OnlineUserPlaylistSongViewModel(
             _sortEntity.value = sortConfig
             val list = sortSong(songs.toList(), sortConfig.sortName, sortConfig.sortType)
             if (player.playKey.value == key) {
-                player.sortMediaItems(SongListType.NetworkList(list.toMutableList()))
+                player.sortMediaItems(list)
             }
             list
         }
@@ -389,13 +387,14 @@ class OnlineUserPlaylistSongViewModel(
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = emptyList()
     )
+
     fun getPlayListInfo() {
         screenModelScope.launch {
             try {
                 val infoDeferred = async { FetchMusic.user.getPlayListInfo(id) }
                 val songListDeferred = async { FetchMusic.user.getPlayListSong(id) }
                 _playlistInfo.value = infoDeferred.await()
-                _songList.value = songListDeferred.await()
+                _songList.value = songListDeferred.await().map { song -> SongType.Network(song) }
             } catch (err: Exception) {
                 println("error : $err")
             }
@@ -403,26 +402,16 @@ class OnlineUserPlaylistSongViewModel(
     }
 
     fun play(index: Int = 0) {
-        player.let { p ->
-            p.resetMediaItems(
-                key,
-                SongListType.NetworkList(songList.value.toMutableList()),
-                false,
-                index
-            )
-            p.prepare(index)
-            p.play()
+        player.resetMediaItems(key, songList.value, false) {
+            player.prepare(index)
+            player.play()
         }
     }
 
     fun resetMediaItems() {
         screenModelScope.launch {
             delay(50.milliseconds)
-            player.resetMediaItems(
-                key,
-                SongListType.NetworkList(songList.value.toMutableList()),
-                true
-            )
+            player.resetMediaItems(key, songList.value, true)
         }
     }
 }

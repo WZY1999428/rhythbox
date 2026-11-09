@@ -3,6 +3,7 @@ package wzy.hkta.rhythbox.screens.search.netSearch.tabScreen
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -12,6 +13,8 @@ import wzy.hkta.rhythbox.components.LoadMore
 import wzy.hkta.rhythbox.screens.search.netSearch.OnlineSearchViewModel
 import wzy.hkta.rhythbox.screens.search.netSearch.SearchSongItem
 import wzy.hkta.rhythbox.screens.search.netSearch.SearchType
+import wzy.hkta.rhythbox.utils.Rhythbox
+import wzy.hkta.rhythbox.utils.SongType
 
 @Composable
 fun SingleList(vm: OnlineSearchViewModel) {
@@ -24,12 +27,14 @@ fun SingleList(vm: OnlineSearchViewModel) {
 
 
     LazyColumn(modifier = Modifier.fillMaxSize()) {
-        items(state.list) {
+        items(state.list) { song ->
             SearchSongItem(
-                title = it.title,
-                artist = it.artists.joinToString("/") {ar-> ar.artistName },
-                coverUrl = it.cover,
-                onClick = { /* 打开歌曲详情 */ }
+                title = song.title,
+                artist = song.artists.joinToString("/") { ar -> ar.artistName },
+                coverUrl = song.cover,
+                onClick = {
+                    Rhythbox.player.addSong(SongType.Network(song))
+                }
             )
         }
         item {
