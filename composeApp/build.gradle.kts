@@ -89,9 +89,9 @@ val packageId = "wzy.hkta.rhythbox"
 val isProd = project.findProperty("env") != "prod"
 buildConfig {
     packageName(packageId)
-    buildConfigField("MUSIC_BASE_URL", if(isProd) "http://www.hkta.cc:8081" else "http://192.168.0.195:8848")
+    buildConfigField("MUSIC_BASE_URL", if(isProd) "" else "")
     buildConfigField("NET_EASE_CLOUD_MUSIC", "https://music.163.com/api/")
-    buildConfigField("DEEP_SEEK_KEY", "sk-a1c27c0d425641c59e81806f9398f798")
+    buildConfigField("DEEP_SEEK_KEY", "")
 }
 
 room {
