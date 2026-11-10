@@ -58,11 +58,11 @@ expect class RhythboxPlayer {
 
 @Serializable
 data class PlayerInfo(
-    val playMode: PlayMode,
-    val duration: Long,
-    val playIndex: Int,
-    val playMediaId: String?,
-    val playSongType: String
+    val playMode: PlayMode = PlayMode.LIST_LOOP,
+    val duration: Long = 0,
+    val playIndex: Int = 0,
+    val playMediaId: String?=null,
+    val playSongType: String = "Local"
 )
 
 data class SongItem(

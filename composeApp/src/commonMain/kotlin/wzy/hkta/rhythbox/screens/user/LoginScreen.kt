@@ -50,8 +50,8 @@ class LoginScreen : Screen {
         val navigator = LocalNavigator.currentOrThrow
         val vm = rememberScreenModel { LoginViewModel(navigator) }
 
-        var username by remember { mutableStateOf("15526225283") }
-        var password by remember { mutableStateOf("a7454796209") }
+        var username by remember { mutableStateOf("") }
+        var password by remember { mutableStateOf("") }
         var passwordVisible by remember { mutableStateOf(false) }
         var rememberLogin by remember { mutableStateOf(true) }
         val loading by vm.loading.collectAsState()

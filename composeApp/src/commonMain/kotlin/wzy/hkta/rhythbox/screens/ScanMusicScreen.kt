@@ -121,6 +121,7 @@ class ScanMusicScreen : Screen {
                         Icon(
                             painterResource(Res.drawable.scan),
                             contentDescription = null,
+                            tint = Color.White,
                             modifier = Modifier.size(15.dp)
                         )
                         val text = when (scanStatus?.value) {

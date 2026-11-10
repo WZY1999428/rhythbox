@@ -271,6 +271,10 @@ actual class RhythboxPlayer(private val context: Context, val database: AppDatab
                         initPlayInfo(playerInfo)
                     }
                 }
+            } else {
+                withContext(Dispatchers.Main) {
+                    initPlayInfo(PlayerInfo())
+                }
             }
         }
     }
@@ -281,20 +285,19 @@ actual class RhythboxPlayer(private val context: Context, val database: AppDatab
         _playIndex.value = playerInfo.playIndex
         _playMediaId.value = playerInfo.playMediaId
         _currentPosition.value = currentPosition
-        setPlayerRepeatMode()
-        exoPlayerSession?.prepare()
         _playMode.value = playerInfo.playMode
-        exoPlayerSession?.seekTo(currentPosition)
+        setPlayerRepeatMode()
         _mediaItems.value.getOrNull(playIndex.value)?.let { song ->
             _currentSong.value = song
+            exoPlayerSession?.prepare()
+            exoPlayerSession?.seekTo(currentPosition)
+            getSongLyric()
         }
-        getSongLyric()
     }
 
     actual fun addSong(song: SongType) {
         if (_mediaItems.value.none { it.mediaId == song.mediaId }) {
             _mediaItems.value += song
-            println("songsongsongsong $song")
             CoroutineScope(Dispatchers.IO).launch {
                 val cacheList = songDao.getSongCache()
                 val mediaItem = buildMediaItems(song, cacheList)
@@ -447,7 +450,6 @@ actual class RhythboxPlayer(private val context: Context, val database: AppDatab
             null -> song.url
             else -> cache.filePath
         }
-        println("urlurlurlurlurl $url")
         return MediaItem.Builder().setMediaId(song.mediaId).setUri(url).setMediaMetadata(
             MediaMetadata.Builder().setArtist(song.artist).setTitle(song.name)
                 .setArtworkUri((song.cover ?: "").toUri()).build()
